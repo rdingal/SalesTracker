@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getInventory, saveInventoryItem, deleteInventoryItem } from '../services/database';
 import './InventoryManager.css';
 
 export default function InventoryManager() {
-  const [inventory, setInventory] = useState([]);
+  const [inventory, setInventory] = useState(() => getInventory());
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
@@ -17,13 +17,6 @@ export default function InventoryManager() {
     const items = getInventory();
     setInventory(items);
   };
-
-  useEffect(() => {
-    // Load initial inventory data from storage
-    const items = getInventory();
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInventory(items);
-  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();

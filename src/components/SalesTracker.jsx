@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getInventory, getSales, recordSale } from '../services/database';
 import './SalesTracker.css';
 
 export default function SalesTracker() {
-  const [inventory, setInventory] = useState([]);
-  const [sales, setSales] = useState([]);
+  const [inventory, setInventory] = useState(() => getInventory());
+  const [sales, setSales] = useState(() => getSales());
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     itemId: '',
@@ -16,13 +16,6 @@ export default function SalesTracker() {
     setInventory(getInventory());
     setSales(getSales());
   };
-
-  useEffect(() => {
-    // Load initial data from storage
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInventory(getInventory());
-    setSales(getSales());
-  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
