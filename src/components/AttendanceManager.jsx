@@ -288,7 +288,7 @@ export default function AttendanceManager() {
                     onDragOver={(e) => handleDragOver(e, emp.id)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, emp.id)}
-                    className="draggable-row"
+                    className={`draggable-row ${isPaidForWeek(emp.id) ? 'row-paid' : ''}`}
                   >
                     <td className="col-employee employee-name-cell col-drag-handle" title="Drag to reorder">
                       <span className="drag-handle" aria-hidden>⋮⋮</span>

@@ -385,6 +385,18 @@
   color: #666;
 }
 
+.attendance-table tbody tr.row-paid {
+  background: #8ddd94;
+}
+
+.attendance-table tbody tr.row-paid td {
+  background: #8ddd94;
+}
+
+.attendance-table tbody tr.row-paid .col-employee {
+  background: #8ddd94;
+}
+
 .attendance-table .col-day {
   min-width: 56px;
 }
