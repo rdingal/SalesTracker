@@ -41,9 +41,6 @@ function App() {
         {activeTab === 'attendance' && <AttendanceManager />}
       </main>
 
-      <footer className="app-footer">
-        <p>💡 Data: Supabase when .env is set, otherwise localStorage</p>
-      </footer>
     </div>
   )
 }
