@@ -28,11 +28,15 @@ create table if not exists public.employees (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   salary_rate numeric not null default 0,
+  display_order integer not null default 0,
   created_at timestamptz default now()
 );
 
 -- For existing databases: run this if employees table already exists without salary_rate
 -- alter table public.employees add column if not exists salary_rate numeric not null default 0;
+
+-- For existing databases: run this if employees table already exists without display_order
+-- alter table public.employees add column if not exists display_order integer not null default 0;
 
 -- Attendance table (one row per employee per day when present)
 create table if not exists public.attendance (

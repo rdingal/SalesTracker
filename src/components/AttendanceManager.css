@@ -355,6 +355,36 @@
   font-weight: 500;
 }
 
+.attendance-table .col-drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.attendance-table .col-drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle {
+  display: inline-block;
+  margin-right: 8px;
+  color: #999;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.attendance-table tbody tr.dragging {
+  opacity: 0.5;
+  background: #f0f0f0;
+}
+
+.attendance-table tbody tr.drag-over {
+  border-top: 2px solid #4CAF50;
+}
+
+.attendance-table tbody tr.draggable-row:hover .drag-handle {
+  color: #666;
+}
+
 .attendance-table .col-day {
   min-width: 56px;
 }

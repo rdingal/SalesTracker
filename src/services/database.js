@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   INVENTORY: 'salestracker_inventory',
   SALES: 'salestracker_sales',
   EMPLOYEES: 'salestracker_employees',
+  EMPLOYEE_ORDER: 'salestracker_employee_order',
   ATTENDANCE: 'salestracker_attendance',
   WEEKLY_PAYMENTS: 'salestracker_weekly_payments'
 };
@@ -59,7 +60,11 @@ async function getSalesSupabase() {
 }
 
 async function getEmployeesSupabase() {
-  const { data, error } = await supabase.from('employees').select('*').order('name');
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('name', { ascending: true });
   if (error) throw error;
   return (data || []).map((row) => ({
     id: row.id,
@@ -68,13 +73,37 @@ async function getEmployeesSupabase() {
   }));
 }
 
+async function updateEmployeeOrderSupabase(orderedEmployeeIds) {
+  for (let i = 0; i < orderedEmployeeIds.length; i++) {
+    const { error } = await supabase
+      .from('employees')
+      .update({ display_order: i })
+      .eq('id', orderedEmployeeIds[i]);
+    if (error) throw error;
+  }
+}
+
 async function saveEmployeeSupabase(employee) {
-  const row = {
+  let row = {
     name: employee.name,
     salary_rate: employee.salaryRate != null ? employee.salaryRate : 0
   };
+  if (!employee.id) {
+    const { data: maxRow } = await supabase
+      .from('employees')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    row.display_order = (maxRow?.display_order ?? -1) + 1;
+  }
   if (employee.id) {
-    const { data, error } = await supabase.from('employees').update(row).eq('id', employee.id).select().single();
+    const { data, error } = await supabase
+      .from('employees')
+      .update({ name: row.name, salary_rate: row.salary_rate })
+      .eq('id', employee.id)
+      .select()
+      .single();
     if (error) throw error;
     return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0) };
   }
@@ -198,14 +227,36 @@ function deleteInventoryItemLocal(id) {
   localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 }
 
+function getEmployeeOrderLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.EMPLOYEE_ORDER);
+  return data ? JSON.parse(data) : [];
+}
+
 function getEmployeesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
   const list = data ? JSON.parse(data) : [];
-  return list.map((e) => ({
+  const order = getEmployeeOrderLocal();
+  const employees = list.map((e) => ({
     id: e.id,
     name: e.name,
     salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0
   }));
+  if (order.length === 0) return employees.sort((a, b) => a.name.localeCompare(b.name));
+  const byId = new Map(employees.map((e) => [e.id, e]));
+  const ordered = [];
+  for (const id of order) {
+    const emp = byId.get(id);
+    if (emp) {
+      ordered.push(emp);
+      byId.delete(id);
+    }
+  }
+  ordered.push(...byId.values());
+  return ordered;
+}
+
+function updateEmployeeOrderLocal(orderedEmployeeIds) {
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEE_ORDER, JSON.stringify(orderedEmployeeIds));
 }
 
 function saveEmployeeLocal(employee) {
@@ -214,20 +265,27 @@ function saveEmployeeLocal(employee) {
     name: employee.name,
     salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0
   };
-  const employees = getEmployeesLocal();
-  const existingIndex = employees.findIndex((e) => e.id === emp.id);
-  if (existingIndex >= 0) {
-    employees[existingIndex] = emp;
+  const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
+  const rawIndex = rawList.findIndex((e) => e.id === emp.id);
+  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate };
+  if (rawIndex >= 0) {
+    rawList[rawIndex] = raw;
   } else {
-    employees.push(emp);
+    rawList.push(raw);
+    const order = getEmployeeOrderLocal();
+    order.push(emp.id);
+    localStorage.setItem(STORAGE_KEYS.EMPLOYEE_ORDER, JSON.stringify(order));
   }
-  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(rawList));
   return emp;
 }
 
 function deleteEmployeeLocal(id) {
-  const employees = getEmployeesLocal().filter((e) => e.id !== id);
-  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+  const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
+  const filtered = rawList.filter((e) => e.id !== id);
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(filtered));
+  const order = getEmployeeOrderLocal().filter((oid) => oid !== id);
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEE_ORDER, JSON.stringify(order));
 }
 
 function getAttendanceLocal() {
@@ -327,6 +385,11 @@ export const saveEmployee = (employee) =>
 export const deleteEmployee = (id) =>
   useSupabase() ? deleteEmployeeSupabase(id) : Promise.resolve(deleteEmployeeLocal(id));
 
+export const updateEmployeeOrder = (orderedEmployeeIds) =>
+  useSupabase()
+    ? updateEmployeeOrderSupabase(orderedEmployeeIds)
+    : Promise.resolve(updateEmployeeOrderLocal(orderedEmployeeIds));
+
 export const getAttendanceForWeek = (startDate, endDate) =>
   useSupabase()
     ? getAttendanceForWeekSupabase(startDate, endDate)
@@ -359,6 +422,7 @@ export const clearAllData = () => {
   }
   localStorage.removeItem(STORAGE_KEYS.WEEKLY_PAYMENTS);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
+  localStorage.removeItem(STORAGE_KEYS.EMPLOYEE_ORDER);
   localStorage.removeItem(STORAGE_KEYS.EMPLOYEES);
   localStorage.removeItem(STORAGE_KEYS.INVENTORY);
   localStorage.removeItem(STORAGE_KEYS.SALES);

@@ -6,7 +6,8 @@ import {
   getAttendanceForWeek,
   toggleAttendance,
   getWeeklyPaymentsForWeek,
-  setWeeklyPaid
+  setWeeklyPaid,
+  updateEmployeeOrder
 } from '../services/database';
 import './AttendanceManager.css';
 
@@ -42,6 +43,7 @@ export default function AttendanceManager() {
   const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
+  const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
   const weekDates = useMemo(() => {
@@ -154,6 +156,51 @@ export default function AttendanceManager() {
     }
   };
 
+  const handleDragStart = (e, employeeId) => {
+    setDraggedEmployeeId(employeeId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', employeeId);
+    e.dataTransfer.setData('application/x-employee-id', employeeId);
+    e.target.closest('tr')?.classList.add('dragging');
+  };
+
+  const handleDragEnd = (e) => {
+    setDraggedEmployeeId(null);
+    e.target.closest('tr')?.classList.remove('dragging');
+  };
+
+  const handleDragOver = (e, dropEmployeeId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedEmployeeId && draggedEmployeeId !== dropEmployeeId) {
+      e.currentTarget.closest('tr')?.classList.add('drag-over');
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.closest('tr')?.classList.remove('drag-over');
+  };
+
+  const handleDrop = async (e, dropEmployeeId) => {
+    e.preventDefault();
+    e.currentTarget.closest('tr')?.classList.remove('drag-over');
+    if (!draggedEmployeeId || draggedEmployeeId === dropEmployeeId) return;
+    const fromIdx = employees.findIndex((emp) => emp.id === draggedEmployeeId);
+    const toIdx = employees.findIndex((emp) => emp.id === dropEmployeeId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const reordered = [...employees];
+    const [removed] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, removed);
+    setEmployees(reordered);
+    setError(null);
+    try {
+      await updateEmployeeOrder(reordered.map((emp) => emp.id));
+    } catch (err) {
+      setError(err?.message || 'Failed to save order');
+      setEmployees(employees);
+    }
+  };
+
   const handleCellClick = async (employeeId, dateStr) => {
     setError(null);
     try {
@@ -215,7 +262,7 @@ export default function AttendanceManager() {
               →
             </button>
           </div>
-          <p className="calendar-hint">Click a cell to mark present or absent.</p>
+          <p className="calendar-hint">Click a cell to mark present or absent. Drag rows to reorder employees.</p>
           <div className="attendance-calendar">
             <table className="attendance-table">
               <thead>
@@ -233,8 +280,20 @@ export default function AttendanceManager() {
               </thead>
               <tbody>
                 {employees.map((emp) => (
-                  <tr key={emp.id}>
-                    <td className="col-employee employee-name-cell">{emp.name}</td>
+                  <tr
+                    key={emp.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, emp.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => handleDragOver(e, emp.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, emp.id)}
+                    className="draggable-row"
+                  >
+                    <td className="col-employee employee-name-cell col-drag-handle" title="Drag to reorder">
+                      <span className="drag-handle" aria-hidden>⋮⋮</span>
+                      {emp.name}
+                    </td>
                     {weekDates.map((d, i) => {
                       const dateStr = toDateStr(d);
                       const present = isPresent(emp.id, dateStr);
