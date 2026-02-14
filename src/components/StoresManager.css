@@ -1,0 +1,338 @@
+.stores-manager {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stores-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stores-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.stores-sub-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #f5f5f5;
+  padding: 6px;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.stores-sub-tabs .sub-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: #666;
+  border-radius: 6px;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stores-sub-tabs .sub-tab:hover {
+  background: #eee;
+}
+
+.stores-sub-tabs .sub-tab.active {
+  background: #4CAF50;
+  color: white;
+}
+
+.stores-manager .calendar-section {
+  min-width: 0;
+}
+
+.store-list-section {
+  min-width: 0;
+}
+
+.store-list-header {
+  margin-bottom: 20px;
+}
+
+.stores-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.stores-form .form-group {
+  flex: 1;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stores-form .form-group label {
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.stores-form .form-group input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.stores-form .form-group input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.stores-manager .week-label {
+  min-width: 220px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.btn-nav {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #333;
+}
+
+.btn-nav:hover {
+  background: #e0e0e0;
+}
+
+.stores-manager .calendar-hint {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.stores-calendar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.stores-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+
+.stores-table th,
+.stores-table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #e8e8e8;
+}
+
+.stores-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.stores-table .col-store {
+  text-align: left;
+  min-width: 140px;
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 1;
+}
+
+.stores-table thead .col-store {
+  background: #f5f5f5;
+}
+
+.stores-table .store-name-cell {
+  font-weight: 500;
+}
+
+.stores-table .col-day {
+  min-width: 80px;
+}
+
+.stores-table .col-total {
+  min-width: 90px;
+  font-weight: 600;
+  background: #f9f9f9;
+}
+
+.stores-table thead .col-total {
+  background: #f0f0f0;
+}
+
+.sale-input {
+  width: 100%;
+  max-width: 90px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.sale-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.total-cell {
+  font-weight: 600;
+  color: #333;
+}
+
+.day-name {
+  font-size: 12px;
+  color: #666;
+}
+
+.day-date {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.store-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.store-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 12px;
+}
+
+.store-item:last-child {
+  border-bottom: none;
+}
+
+.store-item .store-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.store-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: #45a049;
+}
+
+.btn-small {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-small:hover {
+  background: #0b7dda;
+}
+
+.btn-danger {
+  background: #f44336;
+}
+
+.btn-danger:hover {
+  background: #da190b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #999;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .stores-manager {
+    padding: 16px;
+  }
+
+  .stores-header h2 {
+    font-size: 20px;
+  }
+
+  .stores-sub-tabs {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .stores-sub-tabs .sub-tab {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .stores-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stores-form .form-group {
+    max-width: none;
+  }
+
+  .stores-table {
+    min-width: 480px;
+  }
+
+  .sale-input {
+    max-width: 70px;
+    padding: 6px;
+  }
+}

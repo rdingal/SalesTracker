@@ -55,12 +55,31 @@ create table if not exists public.weekly_payments (
   unique(employee_id, week_start)
 );
 
+-- Stores table
+create table if not exists public.stores (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  display_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Store daily sales (amount per store per day)
+create table if not exists public.store_daily_sales (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid references public.stores(id) on delete cascade not null,
+  date date not null,
+  amount numeric not null default 0,
+  unique(store_id, date)
+);
+
 -- Allow anonymous read/write for the app (optional: tighten with Row Level Security later)
 alter table public.inventory enable row level security;
 alter table public.sales enable row level security;
 alter table public.employees enable row level security;
 alter table public.attendance enable row level security;
 alter table public.weekly_payments enable row level security;
+alter table public.stores enable row level security;
+alter table public.store_daily_sales enable row level security;
 
 create policy "Allow all for inventory" on public.inventory
   for all using (true) with check (true);
@@ -75,4 +94,10 @@ create policy "Allow all for attendance" on public.attendance
   for all using (true) with check (true);
 
 create policy "Allow all for weekly_payments" on public.weekly_payments
+  for all using (true) with check (true);
+
+create policy "Allow all for stores" on public.stores
+  for all using (true) with check (true);
+
+create policy "Allow all for store_daily_sales" on public.store_daily_sales
   for all using (true) with check (true);

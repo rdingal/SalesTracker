@@ -6,7 +6,10 @@ const STORAGE_KEYS = {
   EMPLOYEES: 'salestracker_employees',
   EMPLOYEE_ORDER: 'salestracker_employee_order',
   ATTENDANCE: 'salestracker_attendance',
-  WEEKLY_PAYMENTS: 'salestracker_weekly_payments'
+  WEEKLY_PAYMENTS: 'salestracker_weekly_payments',
+  STORES: 'salestracker_stores',
+  STORE_ORDER: 'salestracker_store_order',
+  STORE_DAILY_SALES: 'salestracker_store_daily_sales'
 };
 
 // ---- Supabase (async) ----
@@ -204,6 +207,72 @@ async function recordSaleSupabase(sale) {
   };
 }
 
+async function getStoresSupabase() {
+  const { data, error } = await supabase
+    .from('stores')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    id: row.id,
+    name: row.name
+  }));
+}
+
+async function saveStoreSupabase(store) {
+  const row = { name: store.name };
+  if (store.id) {
+    const { data, error } = await supabase
+      .from('stores')
+      .update(row)
+      .eq('id', store.id)
+      .select()
+      .single();
+    if (error) throw error;
+    return { id: data.id, name: data.name };
+  }
+  const { data: maxRow } = await supabase
+    .from('stores')
+    .select('display_order')
+    .order('display_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  row.display_order = (maxRow?.display_order ?? -1) + 1;
+  const { data, error } = await supabase.from('stores').insert(row).select().single();
+  if (error) throw error;
+  return { id: data.id, name: data.name };
+}
+
+async function deleteStoreSupabase(id) {
+  const { error } = await supabase.from('stores').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function getStoreSalesForWeekSupabase(startDate, endDate) {
+  const { data, error } = await supabase
+    .from('store_daily_sales')
+    .select('store_id, date, amount')
+    .gte('date', startDate)
+    .lte('date', endDate);
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    storeId: row.store_id,
+    date: row.date,
+    amount: parseFloat(row.amount || 0)
+  }));
+}
+
+async function saveStoreDailySaleSupabase(storeId, dateStr, amount) {
+  const { error } = await supabase
+    .from('store_daily_sales')
+    .upsert(
+      { store_id: storeId, date: dateStr, amount },
+      { onConflict: 'store_id,date' }
+    );
+  if (error) throw error;
+}
+
 // ---- LocalStorage (sync, wrapped in Promises for same API) ----
 function getInventoryLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.INVENTORY);
@@ -340,6 +409,91 @@ function setWeeklyPaidLocal(employeeId, weekStartStr, paid) {
   localStorage.setItem(STORAGE_KEYS.WEEKLY_PAYMENTS, JSON.stringify(payments));
 }
 
+function getStoreOrderLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.STORE_ORDER);
+  return data ? JSON.parse(data) : [];
+}
+
+function getStoresLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.STORES);
+  const list = data ? JSON.parse(data) : [];
+  const order = getStoreOrderLocal();
+  const stores = list.map((s) => ({ id: s.id, name: s.name }));
+  if (order.length === 0) return stores.sort((a, b) => a.name.localeCompare(b.name));
+  const byId = new Map(stores.map((s) => [s.id, s]));
+  const ordered = [];
+  for (const id of order) {
+    const store = byId.get(id);
+    if (store) {
+      ordered.push(store);
+      byId.delete(id);
+    }
+  }
+  ordered.push(...byId.values());
+  return ordered;
+}
+
+function saveStoreLocal(store) {
+  const s = { id: store.id || crypto.randomUUID(), name: store.name };
+  const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORES) || '[]');
+  const rawIndex = rawList.findIndex((x) => x.id === s.id);
+  if (rawIndex >= 0) {
+    rawList[rawIndex] = s;
+  } else {
+    rawList.push(s);
+    const order = getStoreOrderLocal();
+    order.push(s.id);
+    localStorage.setItem(STORAGE_KEYS.STORE_ORDER, JSON.stringify(order));
+  }
+  localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(rawList));
+  return s;
+}
+
+function deleteStoreLocal(id) {
+  const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORES) || '[]');
+  localStorage.setItem(
+    STORAGE_KEYS.STORES,
+    JSON.stringify(rawList.filter((s) => s.id !== id))
+  );
+  localStorage.setItem(
+    STORAGE_KEYS.STORE_ORDER,
+    JSON.stringify(getStoreOrderLocal().filter((oid) => oid !== id))
+  );
+  const sales = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORE_DAILY_SALES) || '[]');
+  localStorage.setItem(
+    STORAGE_KEYS.STORE_DAILY_SALES,
+    JSON.stringify(sales.filter((s) => s.storeId !== id))
+  );
+}
+
+function getStoreSalesLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.STORE_DAILY_SALES);
+  return data ? JSON.parse(data) : [];
+}
+
+function getStoreSalesForWeekLocal(startDate, endDate) {
+  const sales = getStoreSalesLocal();
+  return sales
+    .filter((s) => s.date >= startDate && s.date <= endDate)
+    .map((s) => ({
+      storeId: s.storeId,
+      date: s.date,
+      amount: parseFloat(s.amount || 0)
+    }));
+}
+
+function saveStoreDailySaleLocal(storeId, dateStr, amount) {
+  const sales = getStoreSalesLocal();
+  const idx = sales.findIndex((s) => s.storeId === storeId && s.date === dateStr);
+  const record = { storeId, date: dateStr, amount: Number(amount) || 0 };
+  if (idx >= 0) {
+    sales[idx] = record;
+  } else {
+    sales.push(record);
+  }
+  localStorage.setItem(STORAGE_KEYS.STORE_DAILY_SALES, JSON.stringify(sales));
+}
+
 function getSalesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.SALES);
   return data ? JSON.parse(data) : [];
@@ -410,9 +564,30 @@ export const setWeeklyPaid = (employeeId, weekStartStr, paid) =>
     ? setWeeklyPaidSupabase(employeeId, weekStartStr, paid)
     : Promise.resolve(setWeeklyPaidLocal(employeeId, weekStartStr, paid));
 
+export const getStores = () =>
+  useSupabase() ? getStoresSupabase() : Promise.resolve(getStoresLocal());
+
+export const saveStore = (store) =>
+  useSupabase() ? saveStoreSupabase(store) : Promise.resolve(saveStoreLocal(store));
+
+export const deleteStore = (id) =>
+  useSupabase() ? deleteStoreSupabase(id) : Promise.resolve(deleteStoreLocal(id));
+
+export const getStoreSalesForWeek = (startDate, endDate) =>
+  useSupabase()
+    ? getStoreSalesForWeekSupabase(startDate, endDate)
+    : Promise.resolve(getStoreSalesForWeekLocal(startDate, endDate));
+
+export const saveStoreDailySale = (storeId, dateStr, amount) =>
+  useSupabase()
+    ? saveStoreDailySaleSupabase(storeId, dateStr, amount)
+    : Promise.resolve(saveStoreDailySaleLocal(storeId, dateStr, amount));
+
 export const clearAllData = () => {
   if (useSupabase()) {
     return Promise.all([
+      supabase.from('store_daily_sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      supabase.from('stores').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('weekly_payments').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
@@ -420,6 +595,9 @@ export const clearAllData = () => {
       supabase.from('inventory').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     ]).then(() => {});
   }
+  localStorage.removeItem(STORAGE_KEYS.STORE_DAILY_SALES);
+  localStorage.removeItem(STORAGE_KEYS.STORE_ORDER);
+  localStorage.removeItem(STORAGE_KEYS.STORES);
   localStorage.removeItem(STORAGE_KEYS.WEEKLY_PAYMENTS);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.EMPLOYEE_ORDER);

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import InventoryManager from './components/InventoryManager'
 import SalesTracker from './components/SalesTracker'
 import AttendanceManager from './components/AttendanceManager'
+import StoresManager from './components/StoresManager'
 import './App.css'
 
 function App() {
@@ -22,6 +23,12 @@ function App() {
           Attendance
         </button>
         <button
+          className={`tab ${activeTab === 'stores' ? 'active' : ''}`}
+          onClick={() => setActiveTab('stores')}
+        >
+          Stores
+        </button>
+        <button
           className={`tab ${activeTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setActiveTab('inventory')}
         >
@@ -39,6 +46,7 @@ function App() {
         {activeTab === 'inventory' && <InventoryManager />}
         {activeTab === 'sales' && <SalesTracker />}
         {activeTab === 'attendance' && <AttendanceManager />}
+        {activeTab === 'stores' && <StoresManager />}
       </main>
 
     </div>
