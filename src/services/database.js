@@ -2,7 +2,9 @@ import { supabase, useSupabase } from './supabaseClient.js';
 
 const STORAGE_KEYS = {
   INVENTORY: 'salestracker_inventory',
-  SALES: 'salestracker_sales'
+  SALES: 'salestracker_sales',
+  EMPLOYEES: 'salestracker_employees',
+  ATTENDANCE: 'salestracker_attendance'
 };
 
 // ---- Supabase (async) ----
@@ -53,6 +55,63 @@ async function getSalesSupabase() {
     customerName: row.customer_name || '',
     date: row.date
   }));
+}
+
+async function getEmployeesSupabase() {
+  const { data, error } = await supabase.from('employees').select('*').order('name');
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    id: row.id,
+    name: row.name
+  }));
+}
+
+async function saveEmployeeSupabase(employee) {
+  const row = { name: employee.name };
+  if (employee.id) {
+    const { data, error } = await supabase.from('employees').update(row).eq('id', employee.id).select().single();
+    if (error) throw error;
+    return { id: data.id, ...row };
+  }
+  const { data, error } = await supabase.from('employees').insert(row).select().single();
+  if (error) throw error;
+  return { id: data.id, ...row };
+}
+
+async function deleteEmployeeSupabase(id) {
+  const { error } = await supabase.from('employees').delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function getAttendanceForWeekSupabase(startDate, endDate) {
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('employee_id, date')
+    .gte('date', startDate)
+    .lte('date', endDate);
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    employeeId: row.employee_id,
+    date: row.date
+  }));
+}
+
+async function toggleAttendanceSupabase(employeeId, dateStr) {
+  const existing = await supabase
+    .from('attendance')
+    .select('id')
+    .eq('employee_id', employeeId)
+    .eq('date', dateStr)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+  if (existing.data) {
+    const { error } = await supabase.from('attendance').delete().eq('id', existing.data.id);
+    if (error) throw error;
+    return false;
+  }
+  const { error } = await supabase.from('attendance').insert({ employee_id: employeeId, date: dateStr });
+  if (error) throw error;
+  return true;
 }
 
 async function recordSaleSupabase(sale) {
@@ -112,6 +171,54 @@ function deleteInventoryItemLocal(id) {
   localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
 }
 
+function getEmployeesLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
+  return data ? JSON.parse(data) : [];
+}
+
+function saveEmployeeLocal(employee) {
+  const employees = getEmployeesLocal();
+  const existingIndex = employees.findIndex((e) => e.id === employee.id);
+  if (existingIndex >= 0) {
+    employees[existingIndex] = employee;
+  } else {
+    employees.push(employee);
+  }
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+  return employee;
+}
+
+function deleteEmployeeLocal(id) {
+  const employees = getEmployeesLocal().filter((e) => e.id !== id);
+  localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
+}
+
+function getAttendanceLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.ATTENDANCE);
+  return data ? JSON.parse(data) : [];
+}
+
+function getAttendanceForWeekLocal(startDate, endDate) {
+  const attendance = getAttendanceLocal();
+  return attendance.filter(
+    (a) => a.date >= startDate && a.date <= endDate
+  ).map((a) => ({ employeeId: a.employeeId, date: a.date }));
+}
+
+function toggleAttendanceLocal(employeeId, dateStr) {
+  const attendance = getAttendanceLocal();
+  const idx = attendance.findIndex(
+    (a) => a.employeeId === employeeId && a.date === dateStr
+  );
+  if (idx >= 0) {
+    attendance.splice(idx, 1);
+  } else {
+    attendance.push({ id: crypto.randomUUID(), employeeId, date: dateStr });
+  }
+  localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance));
+  return idx < 0;
+}
+
 function getSalesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.SALES);
   return data ? JSON.parse(data) : [];
@@ -148,13 +255,36 @@ export const getSales = () =>
 export const recordSale = (sale) =>
   useSupabase() ? recordSaleSupabase(sale) : Promise.resolve(recordSaleLocal(sale));
 
+export const getEmployees = () =>
+  useSupabase() ? getEmployeesSupabase() : Promise.resolve(getEmployeesLocal());
+
+export const saveEmployee = (employee) =>
+  useSupabase() ? saveEmployeeSupabase(employee) : Promise.resolve(saveEmployeeLocal(employee));
+
+export const deleteEmployee = (id) =>
+  useSupabase() ? deleteEmployeeSupabase(id) : Promise.resolve(deleteEmployeeLocal(id));
+
+export const getAttendanceForWeek = (startDate, endDate) =>
+  useSupabase()
+    ? getAttendanceForWeekSupabase(startDate, endDate)
+    : Promise.resolve(getAttendanceForWeekLocal(startDate, endDate));
+
+export const toggleAttendance = (employeeId, dateStr) =>
+  useSupabase()
+    ? toggleAttendanceSupabase(employeeId, dateStr)
+    : Promise.resolve(toggleAttendanceLocal(employeeId, dateStr));
+
 export const clearAllData = () => {
   if (useSupabase()) {
     return Promise.all([
+      supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('inventory').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     ]).then(() => {});
   }
+  localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
+  localStorage.removeItem(STORAGE_KEYS.EMPLOYEES);
   localStorage.removeItem(STORAGE_KEYS.INVENTORY);
   localStorage.removeItem(STORAGE_KEYS.SALES);
   return Promise.resolve();

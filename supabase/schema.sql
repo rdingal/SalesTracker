@@ -23,12 +23,35 @@ create table if not exists public.sales (
   date timestamptz default now()
 );
 
+-- Employees table
+create table if not exists public.employees (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz default now()
+);
+
+-- Attendance table (one row per employee per day when present)
+create table if not exists public.attendance (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid references public.employees(id) on delete cascade not null,
+  date date not null,
+  unique(employee_id, date)
+);
+
 -- Allow anonymous read/write for the app (optional: tighten with Row Level Security later)
 alter table public.inventory enable row level security;
 alter table public.sales enable row level security;
+alter table public.employees enable row level security;
+alter table public.attendance enable row level security;
 
 create policy "Allow all for inventory" on public.inventory
   for all using (true) with check (true);
 
 create policy "Allow all for sales" on public.sales
+  for all using (true) with check (true);
+
+create policy "Allow all for employees" on public.employees
+  for all using (true) with check (true);
+
+create policy "Allow all for attendance" on public.attendance
   for all using (true) with check (true);

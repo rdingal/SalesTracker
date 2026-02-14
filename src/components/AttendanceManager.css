@@ -1,0 +1,269 @@
+.attendance-manager {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.attendance-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.attendance-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.attendance-form .form-group {
+  flex: 1;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.attendance-form .form-group label {
+  margin-bottom: 8px;
+  color: #555;
+  font-weight: 500;
+}
+
+.attendance-form .form-group input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.attendance-form .form-group input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.attendance-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .attendance-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.employee-list-section h3,
+.calendar-section h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.employee-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.employee-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  gap: 12px;
+}
+
+.employee-item:last-child {
+  border-bottom: none;
+}
+
+.employee-name {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+  min-width: 0;
+}
+
+.employee-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.week-label {
+  min-width: 220px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.btn-nav {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  color: #333;
+}
+
+.btn-nav:hover {
+  background: #e0e0e0;
+}
+
+.calendar-hint {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.attendance-calendar {
+  overflow-x: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.attendance-table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #e8e8e8;
+}
+
+.attendance-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+}
+
+.attendance-table .col-employee {
+  text-align: left;
+  min-width: 140px;
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 1;
+}
+
+.attendance-table thead .col-employee {
+  background: #f5f5f5;
+}
+
+.attendance-table .employee-name-cell {
+  font-weight: 500;
+}
+
+.attendance-table .col-day {
+  min-width: 56px;
+}
+
+.day-name {
+  font-size: 12px;
+  color: #666;
+}
+
+.day-date {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.attendance-cell {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fafafa;
+  cursor: pointer;
+  font-size: 18px;
+  color: transparent;
+  transition: all 0.15s ease;
+}
+
+.attendance-cell:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.attendance-cell.present {
+  background: #4CAF50;
+  border-color: #45a049;
+  color: white;
+}
+
+.attendance-cell.present:hover {
+  background: #45a049;
+}
+
+.btn-primary {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background: #45a049;
+}
+
+.btn-small {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-small:hover {
+  background: #0b7dda;
+}
+
+.btn-danger {
+  background: #f44336;
+}
+
+.btn-danger:hover {
+  background: #da190b;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px;
+  color: #999;
+  font-size: 14px;
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import InventoryManager from './components/InventoryManager'
 import SalesTracker from './components/SalesTracker'
+import AttendanceManager from './components/AttendanceManager'
 import './App.css'
 
 function App() {
@@ -10,7 +11,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <h1>📊 Sales Tracker</h1>
-        <p>Track your inventory and sales in one place</p>
+        <p>Track your inventory, sales, and employee attendance in one place</p>
       </header>
 
       <nav className="tab-nav">
@@ -26,10 +27,18 @@ function App() {
         >
           Sales
         </button>
+        <button
+          className={`tab ${activeTab === 'attendance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('attendance')}
+        >
+          Attendance
+        </button>
       </nav>
 
       <main className="app-content">
-        {activeTab === 'inventory' ? <InventoryManager /> : <SalesTracker />}
+        {activeTab === 'inventory' && <InventoryManager />}
+        {activeTab === 'sales' && <SalesTracker />}
+        {activeTab === 'attendance' && <AttendanceManager />}
       </main>
 
       <footer className="app-footer">
