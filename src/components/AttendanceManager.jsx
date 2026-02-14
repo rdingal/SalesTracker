@@ -4,7 +4,9 @@ import {
   saveEmployee,
   deleteEmployee,
   getAttendanceForWeek,
-  toggleAttendance
+  toggleAttendance,
+  getWeeklyPaymentsForWeek,
+  setWeeklyPaid
 } from '../services/database';
 import './AttendanceManager.css';
 
@@ -29,6 +31,7 @@ function toDateStr(date) {
 export default function AttendanceManager() {
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [weeklyPayments, setWeeklyPayments] = useState([]);
   const [weekStart, setWeekStart] = useState(() => {
     const now = new Date();
     const { start } = getWeekBounds(now);
@@ -55,10 +58,15 @@ export default function AttendanceManager() {
     setError(null);
     const startStr = toDateStr(start);
     const endStr = toDateStr(end);
-    Promise.all([getEmployees(), getAttendanceForWeek(startStr, endStr)])
-      .then(([emps, att]) => {
+    Promise.all([
+      getEmployees(),
+      getAttendanceForWeek(startStr, endStr),
+      getWeeklyPaymentsForWeek(startStr)
+    ])
+      .then(([emps, att, payments]) => {
         setEmployees(emps);
         setAttendance(att);
+        setWeeklyPayments(payments);
       })
       .catch((err) => setError(err?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
@@ -122,10 +130,27 @@ export default function AttendanceManager() {
   const isPresent = (employeeId, dateStr) =>
     attendance.some((a) => a.employeeId === employeeId && a.date === dateStr);
 
+  const isPaidForWeek = (employeeId) =>
+    weeklyPayments.some((p) => p.employeeId === employeeId && p.paid);
+
   const getWeeklyPay = (emp) => {
     const daysPresent = weekDates.filter((d) => isPresent(emp.id, toDateStr(d))).length;
     const rate = emp.salaryRate != null ? Number(emp.salaryRate) : 0;
     return daysPresent * rate;
+  };
+
+  const handlePaidChange = async (employeeId, checked) => {
+    setError(null);
+    const startStr = toDateStr(start);
+    try {
+      await setWeeklyPaid(employeeId, startStr, checked);
+      setWeeklyPayments((prev) => {
+        const rest = prev.filter((p) => p.employeeId !== employeeId);
+        return checked ? [...rest, { employeeId, paid: true }] : rest;
+      });
+    } catch (err) {
+      setError(err?.message || 'Failed to update paid status');
+    }
   };
 
   const handleCellClick = async (employeeId, dateStr) => {
@@ -251,6 +276,7 @@ export default function AttendanceManager() {
                     </th>
                   ))}
                   <th className="col-total">Total Pay</th>
+                  <th className="col-paid">Paid</th>
                 </tr>
               </thead>
               <tbody>
@@ -275,6 +301,16 @@ export default function AttendanceManager() {
                     })}
                     <td className="col-total total-cell">
                       ₱{getWeeklyPay(emp).toFixed(2)}
+                    </td>
+                    <td className="col-paid">
+                      <label className="paid-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={isPaidForWeek(emp.id)}
+                          onChange={(e) => handlePaidChange(emp.id, e.target.checked)}
+                          title="Mark as paid for this week"
+                        />
+                      </label>
                     </td>
                   </tr>
                 ))}

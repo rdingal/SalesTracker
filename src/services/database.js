@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
   INVENTORY: 'salestracker_inventory',
   SALES: 'salestracker_sales',
   EMPLOYEES: 'salestracker_employees',
-  ATTENDANCE: 'salestracker_attendance'
+  ATTENDANCE: 'salestracker_attendance',
+  WEEKLY_PAYMENTS: 'salestracker_weekly_payments'
 };
 
 // ---- Supabase (async) ----
@@ -98,6 +99,28 @@ async function getAttendanceForWeekSupabase(startDate, endDate) {
     employeeId: row.employee_id,
     date: row.date
   }));
+}
+
+async function getWeeklyPaymentsForWeekSupabase(weekStartStr) {
+  const { data, error } = await supabase
+    .from('weekly_payments')
+    .select('employee_id, paid')
+    .eq('week_start', weekStartStr);
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    employeeId: row.employee_id,
+    paid: !!row.paid
+  }));
+}
+
+async function setWeeklyPaidSupabase(employeeId, weekStartStr, paid) {
+  const { error } = await supabase
+    .from('weekly_payments')
+    .upsert(
+      { employee_id: employeeId, week_start: weekStartStr, paid },
+      { onConflict: 'employee_id,week_start' }
+    );
+  if (error) throw error;
 }
 
 async function toggleAttendanceSupabase(employeeId, dateStr) {
@@ -233,6 +256,32 @@ function toggleAttendanceLocal(employeeId, dateStr) {
   return idx < 0;
 }
 
+function getWeeklyPaymentsLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.WEEKLY_PAYMENTS);
+  return data ? JSON.parse(data) : [];
+}
+
+function getWeeklyPaymentsForWeekLocal(weekStartStr) {
+  const payments = getWeeklyPaymentsLocal();
+  return payments
+    .filter((p) => p.weekStart === weekStartStr)
+    .map((p) => ({ employeeId: p.employeeId, paid: !!p.paid }));
+}
+
+function setWeeklyPaidLocal(employeeId, weekStartStr, paid) {
+  const payments = getWeeklyPaymentsLocal();
+  const idx = payments.findIndex(
+    (p) => p.employeeId === employeeId && p.weekStart === weekStartStr
+  );
+  const record = { employeeId, weekStart: weekStartStr, paid };
+  if (idx >= 0) {
+    payments[idx] = record;
+  } else {
+    payments.push(record);
+  }
+  localStorage.setItem(STORAGE_KEYS.WEEKLY_PAYMENTS, JSON.stringify(payments));
+}
+
 function getSalesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.SALES);
   return data ? JSON.parse(data) : [];
@@ -288,15 +337,27 @@ export const toggleAttendance = (employeeId, dateStr) =>
     ? toggleAttendanceSupabase(employeeId, dateStr)
     : Promise.resolve(toggleAttendanceLocal(employeeId, dateStr));
 
+export const getWeeklyPaymentsForWeek = (weekStartStr) =>
+  useSupabase()
+    ? getWeeklyPaymentsForWeekSupabase(weekStartStr)
+    : Promise.resolve(getWeeklyPaymentsForWeekLocal(weekStartStr));
+
+export const setWeeklyPaid = (employeeId, weekStartStr, paid) =>
+  useSupabase()
+    ? setWeeklyPaidSupabase(employeeId, weekStartStr, paid)
+    : Promise.resolve(setWeeklyPaidLocal(employeeId, weekStartStr, paid));
+
 export const clearAllData = () => {
   if (useSupabase()) {
     return Promise.all([
+      supabase.from('weekly_payments').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('inventory').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     ]).then(() => {});
   }
+  localStorage.removeItem(STORAGE_KEYS.WEEKLY_PAYMENTS);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.EMPLOYEES);
   localStorage.removeItem(STORAGE_KEYS.INVENTORY);

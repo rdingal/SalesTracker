@@ -42,11 +42,21 @@ create table if not exists public.attendance (
   unique(employee_id, date)
 );
 
+-- Weekly payments (tracks if employee was paid for a specific week)
+create table if not exists public.weekly_payments (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid references public.employees(id) on delete cascade not null,
+  week_start date not null,
+  paid boolean not null default false,
+  unique(employee_id, week_start)
+);
+
 -- Allow anonymous read/write for the app (optional: tighten with Row Level Security later)
 alter table public.inventory enable row level security;
 alter table public.sales enable row level security;
 alter table public.employees enable row level security;
 alter table public.attendance enable row level security;
+alter table public.weekly_payments enable row level security;
 
 create policy "Allow all for inventory" on public.inventory
   for all using (true) with check (true);
@@ -58,4 +68,7 @@ create policy "Allow all for employees" on public.employees
   for all using (true) with check (true);
 
 create policy "Allow all for attendance" on public.attendance
+  for all using (true) with check (true);
+
+create policy "Allow all for weekly_payments" on public.weekly_payments
   for all using (true) with check (true);
