@@ -386,15 +386,15 @@
 }
 
 .attendance-table tbody tr.row-paid {
-  background: #8ddd94;
+  background: #b5dfb8;
 }
 
 .attendance-table tbody tr.row-paid td {
-  background: #8ddd94;
+  background: #b5dfb8;
 }
 
 .attendance-table tbody tr.row-paid .col-employee {
-  background: #8ddd94;
+  background: #b5dfb8;
 }
 
 .attendance-table .col-day {
