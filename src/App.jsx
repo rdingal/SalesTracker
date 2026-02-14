@@ -33,7 +33,7 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <p>💡 Data is stored locally. To use Supabase, see src/services/database.js</p>
+        <p>💡 Data: Supabase when .env is set, otherwise localStorage</p>
       </footer>
     </div>
   )

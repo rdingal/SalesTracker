@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getInventory, getSales, recordSale } from '../services/database';
 import './SalesTracker.css';
 
 export default function SalesTracker() {
-  const [inventory, setInventory] = useState(() => getInventory());
-  const [sales, setSales] = useState(() => getSales());
+  const [inventory, setInventory] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     itemId: '',
@@ -13,40 +15,51 @@ export default function SalesTracker() {
   });
 
   const loadData = () => {
-    setInventory(getInventory());
-    setSales(getSales());
+    setLoading(true);
+    setError(null);
+    Promise.all([getInventory(), getSales()])
+      .then(([inv, s]) => {
+        setInventory(inv);
+        setSales(s);
+      })
+      .catch((err) => setError(err?.message || 'Failed to load data'))
+      .finally(() => setLoading(false));
   };
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const item = inventory.find(i => i.id === formData.itemId);
+    const item = inventory.find((i) => i.id === formData.itemId);
     if (!item) {
       alert('Please select an item');
       return;
     }
-
-    const quantity = parseInt(formData.quantity);
+    const quantity = parseInt(formData.quantity, 10);
     if (quantity > item.quantity) {
       alert(`Only ${item.quantity} units available in stock`);
       return;
     }
-
     const sale = {
-      id: Date.now().toString(),
       itemId: formData.itemId,
       itemName: item.name,
-      quantity: quantity,
+      quantity,
       price: item.price,
       total: item.price * quantity,
       customerName: formData.customerName,
       date: new Date().toISOString()
     };
-
-    recordSale(sale);
-    loadData();
-    setFormData({ itemId: '', quantity: '', customerName: '' });
-    setShowForm(false);
+    setError(null);
+    try {
+      await recordSale(sale);
+      loadData();
+      setFormData({ itemId: '', quantity: '', customerName: '' });
+      setShowForm(false);
+    } catch (err) {
+      setError(err?.message || 'Failed to record sale');
+    }
   };
 
   const getTotalSales = () => {
@@ -65,6 +78,11 @@ export default function SalesTracker() {
           {showForm ? 'Cancel' : '+ Record Sale'}
         </button>
       </div>
+
+      {error && <p className="error-message">{error}</p>}
+      {loading && inventory.length === 0 && sales.length === 0 ? (
+        <p className="empty-state">Loading…</p>
+      ) : null}
 
       <div className="sales-stats">
         <div className="stat-card">
@@ -126,7 +144,7 @@ export default function SalesTracker() {
 
       <div className="sales-list">
         <h3>Recent Sales</h3>
-        {sales.length === 0 ? (
+        {!loading && sales.length === 0 ? (
           <p className="empty-state">No sales recorded yet. Record your first sale to get started!</p>
         ) : (
           <table className="sales-table">

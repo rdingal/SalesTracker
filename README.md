@@ -53,19 +53,17 @@ npm run dev
 
 ## Using with Supabase
 
-To connect to a Supabase database:
+The app uses Supabase when env vars are set; otherwise it falls back to localStorage.
 
-1. Install Supabase client:
-```bash
-npm install @supabase/supabase-js
-```
+1. Create a project at [supabase.com](https://supabase.com) and get your **Project URL** and **anon public** key (Settings → API).
 
-2. Create a Supabase project at https://supabase.com
+2. Create the tables: in the Supabase dashboard open **SQL Editor**, then run the script in `supabase/schema.sql`.
 
-3. Update `src/services/database.js`:
-   - Uncomment the Supabase import and client initialization
-   - Replace `SUPABASE_URL` and `SUPABASE_KEY` with your project credentials
-   - Update the CRUD functions to use Supabase instead of localStorage
+3. Copy `.env.example` to `.env` and set:
+   - `VITE_SUPABASE_URL` = your project URL  
+   - `VITE_SUPABASE_ANON_KEY` = your anon key  
+
+4. Restart the dev server (`npm run dev`). Data will be stored in Supabase. Without these env vars, the app still runs using localStorage.
 
 ## Project Structure
 
@@ -102,12 +100,8 @@ src/
 
 ## Data Persistence
 
-Currently, the app uses browser localStorage for data persistence. This means:
-- Data persists across browser sessions
-- Data is stored locally in the browser
-- Clearing browser data will reset the application
-
-To use a real database like Supabase, follow the instructions in the "Using with Supabase" section above.
+- **With Supabase**: set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` and run `supabase/schema.sql` in your project. Data is stored in the cloud.
+- **Without Supabase**: the app uses browser localStorage (data is local only; clearing browser data resets it).
 
 ## License
 

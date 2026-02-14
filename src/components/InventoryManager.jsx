@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getInventory, saveInventoryItem, deleteInventoryItem } from '../services/database';
 import './InventoryManager.css';
 
 export default function InventoryManager() {
-  const [inventory, setInventory] = useState(() => getInventory());
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
@@ -14,25 +16,36 @@ export default function InventoryManager() {
   });
 
   const loadInventory = () => {
-    const items = getInventory();
-    setInventory(items);
+    setLoading(true);
+    setError(null);
+    getInventory()
+      .then(setInventory)
+      .catch((err) => setError(err?.message || 'Failed to load inventory'))
+      .finally(() => setLoading(false));
   };
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    loadInventory();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
     const item = {
-      id: formData.id || Date.now().toString(),
+      id: formData.id || undefined,
       name: formData.name,
       price: parseFloat(formData.price),
-      quantity: parseInt(formData.quantity),
-      description: formData.description
+      quantity: parseInt(formData.quantity, 10),
+      description: formData.description || ''
     };
-
-    saveInventoryItem(item);
-    loadInventory();
-    setFormData({ id: '', name: '', price: '', quantity: '', description: '' });
-    setShowForm(false);
+    setError(null);
+    try {
+      await saveInventoryItem(item);
+      loadInventory();
+      setFormData({ id: '', name: '', price: '', quantity: '', description: '' });
+      setShowForm(false);
+    } catch (err) {
+      setError(err?.message || 'Failed to save item');
+    }
   };
 
   const handleEdit = (item) => {
@@ -41,15 +54,19 @@ export default function InventoryManager() {
       name: item.name,
       price: item.price.toString(),
       quantity: item.quantity.toString(),
-      description: item.description
+      description: item.description || ''
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      deleteInventoryItem(id);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    setError(null);
+    try {
+      await deleteInventoryItem(id);
       loadInventory();
+    } catch (err) {
+      setError(err?.message || 'Failed to delete item');
     }
   };
 
@@ -61,6 +78,11 @@ export default function InventoryManager() {
           {showForm ? 'Cancel' : '+ Add Item'}
         </button>
       </div>
+
+      {error && <p className="error-message">{error}</p>}
+      {loading && inventory.length === 0 ? (
+        <p className="empty-state">Loading inventory…</p>
+      ) : null}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="inventory-form">
@@ -109,7 +131,7 @@ export default function InventoryManager() {
       )}
 
       <div className="inventory-list">
-        {inventory.length === 0 ? (
+        {!loading && inventory.length === 0 ? (
           <p className="empty-state">No items in inventory. Add your first item to get started!</p>
         ) : (
           <table className="inventory-table">
