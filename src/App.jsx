@@ -5,7 +5,7 @@ import AttendanceManager from './components/AttendanceManager'
 import './App.css'
 
 function App() {
-  const [activeTab, setActiveTab] = useState('inventory')
+  const [activeTab, setActiveTab] = useState('attendance')
 
   return (
     <div className="app">
@@ -15,6 +15,12 @@ function App() {
       </header>
 
       <nav className="tab-nav">
+        <button
+          className={`tab ${activeTab === 'attendance' ? 'active' : ''}`}
+          onClick={() => setActiveTab('attendance')}
+        >
+          Attendance
+        </button>
         <button
           className={`tab ${activeTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setActiveTab('inventory')}
@@ -26,12 +32,6 @@ function App() {
           onClick={() => setActiveTab('sales')}
         >
           Sales
-        </button>
-        <button
-          className={`tab ${activeTab === 'attendance' ? 'active' : ''}`}
-          onClick={() => setActiveTab('attendance')}
-        >
-          Attendance
         </button>
       </nav>
 
