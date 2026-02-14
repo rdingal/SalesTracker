@@ -87,7 +87,7 @@ export default function SalesTracker() {
       <div className="sales-stats">
         <div className="stat-card">
           <div className="stat-label">Total Sales</div>
-          <div className="stat-value">${getTotalSales().toFixed(2)}</div>
+          <div className="stat-value">₱{getTotalSales().toFixed(2)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Number of Transactions</div>
@@ -112,7 +112,7 @@ export default function SalesTracker() {
                 <option value="">-- Select an item --</option>
                 {inventory.filter(item => item.quantity > 0).map(item => (
                   <option key={item.id} value={item.id}>
-                    {item.name} (${item.price} - {item.quantity} available)
+                    {item.name} (₱{item.price} - {item.quantity} available)
                   </option>
                 ))}
               </select>
@@ -165,8 +165,8 @@ export default function SalesTracker() {
                   <td>{sale.itemName}</td>
                   <td>{sale.customerName || '-'}</td>
                   <td>{sale.quantity}</td>
-                  <td>${sale.price.toFixed(2)}</td>
-                  <td>${sale.total.toFixed(2)}</td>
+                  <td>₱{sale.price.toFixed(2)}</td>
+                  <td>₱{sale.total.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

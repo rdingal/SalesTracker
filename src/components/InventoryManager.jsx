@@ -97,7 +97,7 @@ export default function InventoryManager() {
               />
             </div>
             <div className="form-group">
-              <label>Price ($) *</label>
+              <label>Price (₱) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -149,7 +149,7 @@ export default function InventoryManager() {
                 <tr key={item.id} className={item.quantity < 10 ? 'low-stock' : ''}>
                   <td>{item.name}</td>
                   <td>{item.description}</td>
-                  <td>${item.price.toFixed(2)}</td>
+                  <td>₱{item.price.toFixed(2)}</td>
                   <td>{item.quantity}</td>
                   <td>
                     <button onClick={() => handleEdit(item)} className="btn-small">

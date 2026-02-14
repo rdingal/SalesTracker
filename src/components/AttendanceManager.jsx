@@ -37,7 +37,7 @@ export default function AttendanceManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
   const weekDates = useMemo(() => {
@@ -82,13 +82,17 @@ export default function AttendanceManager() {
 
   const handleEmployeeSubmit = async (e) => {
     e.preventDefault();
-    const employee = { id: formData.id || undefined, name: formData.name.trim() };
+    const employee = {
+      id: formData.id || undefined,
+      name: formData.name.trim(),
+      salaryRate: parseFloat(formData.salaryRate) || 0
+    };
     if (!employee.name) return;
     setError(null);
     try {
       await saveEmployee(employee);
       loadData();
-      setFormData({ id: '', name: '' });
+      setFormData({ id: '', name: '', salaryRate: '' });
       setShowForm(false);
     } catch (err) {
       setError(err?.message || 'Failed to save employee');
@@ -107,12 +111,22 @@ export default function AttendanceManager() {
   };
 
   const handleEditEmployee = (emp) => {
-    setFormData({ id: emp.id, name: emp.name });
+    setFormData({
+      id: emp.id,
+      name: emp.name,
+      salaryRate: emp.salaryRate != null ? String(emp.salaryRate) : ''
+    });
     setShowForm(true);
   };
 
   const isPresent = (employeeId, dateStr) =>
     attendance.some((a) => a.employeeId === employeeId && a.date === dateStr);
+
+  const getWeeklyPay = (emp) => {
+    const daysPresent = weekDates.filter((d) => isPresent(emp.id, toDateStr(d))).length;
+    const rate = emp.salaryRate != null ? Number(emp.salaryRate) : 0;
+    return daysPresent * rate;
+  };
 
   const handleCellClick = async (employeeId, dateStr) => {
     setError(null);
@@ -162,6 +176,17 @@ export default function AttendanceManager() {
               required
             />
           </div>
+          <div className="form-group">
+            <label>Daily Salary Rate (₱)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.salaryRate}
+              onChange={(e) => setFormData({ ...formData, salaryRate: e.target.value })}
+              placeholder="0"
+            />
+          </div>
           <button type="submit" className="btn-primary">
             {formData.id ? 'Update' : 'Add'} Employee
           </button>
@@ -177,7 +202,10 @@ export default function AttendanceManager() {
             <ul className="employee-list">
               {employees.map((emp) => (
                 <li key={emp.id} className="employee-item">
-                  <span className="employee-name">{emp.name}</span>
+                  <div className="employee-info">
+                    <span className="employee-name">{emp.name}</span>
+                    <span className="employee-salary">₱{Number(emp.salaryRate || 0).toFixed(2)}/day</span>
+                  </div>
                   <div className="employee-actions">
                     <button
                       type="button"
@@ -222,6 +250,7 @@ export default function AttendanceManager() {
                       <div className="day-date">{d.getDate()}</div>
                     </th>
                   ))}
+                  <th className="col-total">Total Pay</th>
                 </tr>
               </thead>
               <tbody>
@@ -244,6 +273,9 @@ export default function AttendanceManager() {
                         </td>
                       );
                     })}
+                    <td className="col-total total-cell">
+                      ₱{getWeeklyPay(emp).toFixed(2)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

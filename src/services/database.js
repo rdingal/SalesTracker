@@ -62,20 +62,24 @@ async function getEmployeesSupabase() {
   if (error) throw error;
   return (data || []).map((row) => ({
     id: row.id,
-    name: row.name
+    name: row.name,
+    salaryRate: row.salary_rate != null ? parseFloat(row.salary_rate) : 0
   }));
 }
 
 async function saveEmployeeSupabase(employee) {
-  const row = { name: employee.name };
+  const row = {
+    name: employee.name,
+    salary_rate: employee.salaryRate != null ? employee.salaryRate : 0
+  };
   if (employee.id) {
     const { data, error } = await supabase.from('employees').update(row).eq('id', employee.id).select().single();
     if (error) throw error;
-    return { id: data.id, ...row };
+    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0) };
   }
   const { data, error } = await supabase.from('employees').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, ...row };
+  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0) };
 }
 
 async function deleteEmployeeSupabase(id) {
@@ -173,19 +177,29 @@ function deleteInventoryItemLocal(id) {
 
 function getEmployeesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
-  return data ? JSON.parse(data) : [];
+  const list = data ? JSON.parse(data) : [];
+  return list.map((e) => ({
+    id: e.id,
+    name: e.name,
+    salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0
+  }));
 }
 
 function saveEmployeeLocal(employee) {
+  const emp = {
+    id: employee.id || crypto.randomUUID(),
+    name: employee.name,
+    salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0
+  };
   const employees = getEmployeesLocal();
-  const existingIndex = employees.findIndex((e) => e.id === employee.id);
+  const existingIndex = employees.findIndex((e) => e.id === emp.id);
   if (existingIndex >= 0) {
-    employees[existingIndex] = employee;
+    employees[existingIndex] = emp;
   } else {
-    employees.push(employee);
+    employees.push(emp);
   }
   localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(employees));
-  return employee;
+  return emp;
 }
 
 function deleteEmployeeLocal(id) {
