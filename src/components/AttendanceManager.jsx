@@ -39,6 +39,7 @@ export default function AttendanceManager() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
 
@@ -179,80 +180,31 @@ export default function AttendanceManager() {
     <div className="attendance-manager">
       <div className="attendance-header">
         <h2>Employee Attendance</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? 'Cancel' : '+ Add Employee'}
-        </button>
       </div>
+
+      <nav className="attendance-sub-tabs">
+        <button
+          type="button"
+          className={`sub-tab ${activeSubTab === 'calendar' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('calendar')}
+        >
+          Calendar
+        </button>
+        <button
+          type="button"
+          className={`sub-tab ${activeSubTab === 'employees' ? 'active' : ''}`}
+          onClick={() => setActiveSubTab('employees')}
+        >
+          Employees
+        </button>
+      </nav>
 
       {error && <p className="error-message">{error}</p>}
       {loading && employees.length === 0 ? (
         <p className="empty-state">Loading…</p>
       ) : null}
 
-      {showForm && (
-        <form onSubmit={handleEmployeeSubmit} className="attendance-form">
-          <div className="form-group">
-            <label>Employee Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter name"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Daily Salary Rate (₱)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.salaryRate}
-              onChange={(e) => setFormData({ ...formData, salaryRate: e.target.value })}
-              placeholder="0"
-            />
-          </div>
-          <button type="submit" className="btn-primary">
-            {formData.id ? 'Update' : 'Add'} Employee
-          </button>
-        </form>
-      )}
-
-      <div className="attendance-layout">
-        <div className="employee-list-section">
-          <h3>Employees</h3>
-          {employees.length === 0 && !loading ? (
-            <p className="empty-state">No employees yet. Add employees to track attendance.</p>
-          ) : (
-            <ul className="employee-list">
-              {employees.map((emp) => (
-                <li key={emp.id} className="employee-item">
-                  <div className="employee-info">
-                    <span className="employee-name">{emp.name}</span>
-                    <span className="employee-salary">₱{Number(emp.salaryRate || 0).toFixed(2)}/day</span>
-                  </div>
-                  <div className="employee-actions">
-                    <button
-                      type="button"
-                      onClick={() => handleEditEmployee(emp)}
-                      className="btn-small"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteEmployee(emp.id)}
-                      className="btn-small btn-danger"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
+      {activeSubTab === 'calendar' && (
         <div className="calendar-section">
           <div className="calendar-header">
             <button type="button" onClick={goPrevWeek} className="btn-nav" aria-label="Previous week">
@@ -318,7 +270,75 @@ export default function AttendanceManager() {
             </table>
           </div>
         </div>
-      </div>
+      )}
+
+      {activeSubTab === 'employees' && (
+        <div className="employee-list-section">
+          <div className="employee-list-header">
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              {showForm ? 'Cancel' : '+ Add Employee'}
+            </button>
+          </div>
+          {showForm && (
+            <form onSubmit={handleEmployeeSubmit} className="attendance-form">
+              <div className="form-group">
+                <label>Employee Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter name"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Daily Salary Rate (₱)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.salaryRate}
+                  onChange={(e) => setFormData({ ...formData, salaryRate: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <button type="submit" className="btn-primary">
+                {formData.id ? 'Update' : 'Add'} Employee
+              </button>
+            </form>
+          )}
+          {employees.length === 0 && !loading ? (
+            <p className="empty-state">No employees yet. Add employees to track attendance.</p>
+          ) : (
+            <ul className="employee-list">
+              {employees.map((emp) => (
+                <li key={emp.id} className="employee-item">
+                  <div className="employee-info">
+                    <span className="employee-name">{emp.name}</span>
+                    <span className="employee-salary">₱{Number(emp.salaryRate || 0).toFixed(2)}/day</span>
+                  </div>
+                  <div className="employee-actions">
+                    <button
+                      type="button"
+                      onClick={() => handleEditEmployee(emp)}
+                      className="btn-small"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteEmployee(emp.id)}
+                      className="btn-small btn-danger"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
