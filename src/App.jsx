@@ -10,7 +10,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>📊 Sales Tracker</h1>
+        <h1>📊 Koolet's Inventory Management System</h1>
         <p>Track your inventory, sales, and employee attendance in one place</p>
       </header>
 
