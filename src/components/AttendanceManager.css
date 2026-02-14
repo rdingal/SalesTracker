@@ -3,7 +3,6 @@
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow-x: hidden;
 }
 
 .attendance-header {
@@ -62,6 +61,10 @@
   grid-template-columns: 280px 1fr;
   gap: 24px;
   align-items: start;
+}
+
+.calendar-section {
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -275,13 +278,16 @@
 
 .attendance-calendar {
   overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
+  width: 100%;
 }
 
 .attendance-table {
   width: 100%;
-  min-width: 500px;
+  min-width: 650px;
   border-collapse: collapse;
 }
 
