@@ -3,12 +3,15 @@
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow-x: hidden;
 }
 
 .attendance-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
@@ -20,6 +23,7 @@
 .attendance-form {
   display: flex;
   align-items: flex-end;
+  flex-wrap: wrap;
   gap: 16px;
   background: #f8f9fa;
   padding: 20px;
@@ -63,6 +67,123 @@
 @media (max-width: 900px) {
   .attendance-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .attendance-manager {
+    padding: 16px;
+  }
+
+  .attendance-header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .attendance-header h2 {
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .attendance-form {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .attendance-form .form-group {
+    max-width: none;
+  }
+
+  .attendance-layout {
+    gap: 16px;
+  }
+
+  .employee-list-section h3,
+  .calendar-section h3 {
+    font-size: 16px;
+  }
+
+  .employee-item {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .employee-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .calendar-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .week-label {
+    min-width: 100%;
+    order: -1;
+    font-size: 16px;
+  }
+
+  .btn-nav {
+    flex: 1;
+    padding: 10px 16px;
+  }
+
+  .calendar-hint {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .attendance-calendar {
+    margin: 0 -4px;
+    border-radius: 6px;
+  }
+
+  .attendance-table {
+    min-width: 480px;
+    font-size: 14px;
+  }
+
+  .attendance-table th,
+  .attendance-table td {
+    padding: 6px 4px;
+  }
+
+  .attendance-table .col-employee {
+    min-width: 100px;
+  }
+
+  .attendance-table .col-day {
+    min-width: 44px;
+  }
+
+  .attendance-cell {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .day-date {
+    font-size: 14px;
+  }
+
+  .day-name {
+    font-size: 11px;
+  }
+
+  .col-total {
+    min-width: 70px;
+    font-size: 13px;
+  }
+
+  .btn-small {
+    padding: 8px 12px;
+    font-size: 13px;
   }
 }
 

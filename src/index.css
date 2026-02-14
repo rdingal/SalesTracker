@@ -15,8 +15,16 @@ body {
   min-height: 100vh;
   background: #f0f2f5;
   color: #333;
+  -webkit-text-size-adjust: 100%;
 }
 
 #root {
   width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 12px;
+  }
 }
