@@ -52,15 +52,22 @@
 
 [data-theme="dark"] .attendance-table .col-net,
 [data-theme="dark"] .attendance-table td.col-net {
-  background: rgba(76, 175, 80, 0.35) !important;
-  color: #a5d6a7 !important;
+  background: rgba(76, 175, 80, 0.5) !important;
+  color: #e8f5e9 !important;
   border-left-color: #66bb6a !important;
+  border-right-color: #2e7d32 !important;
+}
+
+[data-theme="dark"] .attendance-table tbody tr.row-paid td.col-net {
+  background: rgba(76, 175, 80, 0.55) !important;
+  color: #e8f5e9 !important;
 }
 
 [data-theme="dark"] .attendance-table thead .col-net {
-  background: rgba(76, 175, 80, 0.5) !important;
-  color: #c8e6c9 !important;
+  background: rgba(76, 175, 80, 0.6) !important;
+  color: #e8f5e9 !important;
   border-left-color: #66bb6a !important;
+  border-right-color: #2e7d32 !important;
 }
 
 .today-label {

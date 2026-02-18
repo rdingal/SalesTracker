@@ -423,15 +423,23 @@
   min-width: 88px;
   font-weight: 700;
   font-size: 15px;
-  background: #e8f5e9 !important;
+  background: #a5d6a7 !important;
   border-left: 2px solid #4CAF50;
+  border-right: 2px solid #2e7d32;
   color: #1b5e20;
 }
 
+/* Keep Net Pay column clearly green in paid rows so it doesn't blend with Paid column */
+.attendance-table tbody tr.row-paid td.col-net {
+  background: #a5d6a7 !important;
+  color: #1b5e20 !important;
+}
+
 .attendance-table thead .col-net {
-  background: #c8e6c9 !important;
-  color: #2e7d32;
+  background: #81c784 !important;
+  color: #1b5e20;
   border-left: 2px solid #4CAF50;
+  border-right: 2px solid #2e7d32;
 }
 
 .attendance-table thead .col-deductions {
