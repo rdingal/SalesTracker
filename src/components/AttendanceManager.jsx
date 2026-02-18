@@ -7,7 +7,8 @@ import {
   toggleAttendance,
   getWeeklyPaymentsForWeek,
   setWeeklyPaid,
-  updateEmployeeOrder
+  updateEmployeeOrder,
+  getStores
 } from '../services/database';
 import './AttendanceManager.css';
 
@@ -44,6 +45,7 @@ export default function AttendanceManager() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
   const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
+  const [stores, setStores] = useState([]);
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
   const weekDates = useMemo(() => {
@@ -64,12 +66,14 @@ export default function AttendanceManager() {
     Promise.all([
       getEmployees(),
       getAttendanceForWeek(startStr, endStr),
-      getWeeklyPaymentsForWeek(startStr)
+      getWeeklyPaymentsForWeek(startStr),
+      getStores()
     ])
-      .then(([emps, att, payments]) => {
+      .then(([emps, att, payments, storeList]) => {
         setEmployees(emps);
         setAttendance(att);
         setWeeklyPayments(payments);
+        setStores(storeList || []);
       })
       .catch((err) => setError(err?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
@@ -135,6 +139,12 @@ export default function AttendanceManager() {
 
   const isPaidForWeek = (employeeId) =>
     weeklyPayments.some((p) => p.employeeId === employeeId && p.paid);
+
+  const getStoreColorForEmployee = (storeId) => {
+    if (!storeId) return null;
+    const store = stores.find((s) => s.id === storeId);
+    return store?.color || null;
+  };
 
   const getWeeklyPay = (emp) => {
     const daysPresent = weekDates.filter((d) => isPresent(emp.id, toDateStr(d))).length;
@@ -292,7 +302,16 @@ export default function AttendanceManager() {
                   >
                     <td className="col-employee employee-name-cell col-drag-handle" title="Drag to reorder">
                       <span className="drag-handle" aria-hidden>⋮⋮</span>
-                      {emp.name}
+                      <span
+                        className="employee-name-by-store"
+                        style={
+                          getStoreColorForEmployee(emp.storeId)
+                            ? { color: getStoreColorForEmployee(emp.storeId) }
+                            : undefined
+                        }
+                      >
+                        {emp.name}
+                      </span>
                     </td>
                     {weekDates.map((d, i) => {
                       const dateStr = toDateStr(d);

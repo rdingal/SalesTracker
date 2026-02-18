@@ -72,7 +72,8 @@ async function getEmployeesSupabase() {
   return (data || []).map((row) => ({
     id: row.id,
     name: row.name,
-    salaryRate: row.salary_rate != null ? parseFloat(row.salary_rate) : 0
+    salaryRate: row.salary_rate != null ? parseFloat(row.salary_rate) : 0,
+    storeId: row.store_id || null
   }));
 }
 
@@ -89,7 +90,8 @@ async function updateEmployeeOrderSupabase(orderedEmployeeIds) {
 async function saveEmployeeSupabase(employee) {
   let row = {
     name: employee.name,
-    salary_rate: employee.salaryRate != null ? employee.salaryRate : 0
+    salary_rate: employee.salaryRate != null ? employee.salaryRate : 0,
+    store_id: employee.storeId ?? null
   };
   if (!employee.id) {
     const { data: maxRow } = await supabase
@@ -103,16 +105,16 @@ async function saveEmployeeSupabase(employee) {
   if (employee.id) {
     const { data, error } = await supabase
       .from('employees')
-      .update({ name: row.name, salary_rate: row.salary_rate })
+      .update({ name: row.name, salary_rate: row.salary_rate, store_id: row.store_id })
       .eq('id', employee.id)
       .select()
       .single();
     if (error) throw error;
-    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0) };
+    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null };
   }
   const { data, error } = await supabase.from('employees').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0) };
+  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null };
 }
 
 async function deleteEmployeeSupabase(id) {
@@ -216,12 +218,13 @@ async function getStoresSupabase() {
   if (error) throw error;
   return (data || []).map((row) => ({
     id: row.id,
-    name: row.name
+    name: row.name,
+    color: row.color || '#333333'
   }));
 }
 
 async function saveStoreSupabase(store) {
-  const row = { name: store.name };
+  const row = { name: store.name, color: store.color || '#333333' };
   if (store.id) {
     const { data, error } = await supabase
       .from('stores')
@@ -230,7 +233,13 @@ async function saveStoreSupabase(store) {
       .select()
       .single();
     if (error) throw error;
-    return { id: data.id, name: data.name };
+    if (Array.isArray(store.linkedEmployeeIds)) {
+      await supabase.from('employees').update({ store_id: null }).eq('store_id', store.id);
+      if (store.linkedEmployeeIds.length > 0) {
+        await supabase.from('employees').update({ store_id: store.id }).in('id', store.linkedEmployeeIds);
+      }
+    }
+    return { id: data.id, name: data.name, color: data.color || '#333333' };
   }
   const { data: maxRow } = await supabase
     .from('stores')
@@ -241,7 +250,7 @@ async function saveStoreSupabase(store) {
   row.display_order = (maxRow?.display_order ?? -1) + 1;
   const { data, error } = await supabase.from('stores').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name };
+  return { id: data.id, name: data.name, color: data.color || '#333333' };
 }
 
 async function deleteStoreSupabase(id) {
@@ -308,7 +317,8 @@ function getEmployeesLocal() {
   const employees = list.map((e) => ({
     id: e.id,
     name: e.name,
-    salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0
+    salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0,
+    storeId: e.storeId ?? null
   }));
   if (order.length === 0) return employees.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(employees.map((e) => [e.id, e]));
@@ -332,11 +342,12 @@ function saveEmployeeLocal(employee) {
   const emp = {
     id: employee.id || crypto.randomUUID(),
     name: employee.name,
-    salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0
+    salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0,
+    storeId: employee.storeId ?? null
   };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
   const rawIndex = rawList.findIndex((e) => e.id === emp.id);
-  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate };
+  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate, storeId: emp.storeId };
   if (rawIndex >= 0) {
     rawList[rawIndex] = raw;
   } else {
@@ -418,7 +429,7 @@ function getStoresLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.STORES);
   const list = data ? JSON.parse(data) : [];
   const order = getStoreOrderLocal();
-  const stores = list.map((s) => ({ id: s.id, name: s.name }));
+  const stores = list.map((s) => ({ id: s.id, name: s.name, color: s.color || '#333333' }));
   if (order.length === 0) return stores.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(stores.map((s) => [s.id, s]));
   const ordered = [];
@@ -434,7 +445,7 @@ function getStoresLocal() {
 }
 
 function saveStoreLocal(store) {
-  const s = { id: store.id || crypto.randomUUID(), name: store.name };
+  const s = { id: store.id || crypto.randomUUID(), name: store.name, color: store.color || '#333333' };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORES) || '[]');
   const rawIndex = rawList.findIndex((x) => x.id === s.id);
   if (rawIndex >= 0) {
@@ -446,6 +457,16 @@ function saveStoreLocal(store) {
     localStorage.setItem(STORAGE_KEYS.STORE_ORDER, JSON.stringify(order));
   }
   localStorage.setItem(STORAGE_KEYS.STORES, JSON.stringify(rawList));
+  if (Array.isArray(store.linkedEmployeeIds)) {
+    const empList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
+    empList.forEach((e) => {
+      const inList = store.linkedEmployeeIds.includes(e.id);
+      const wasInStore = e.storeId === s.id;
+      if (wasInStore && !inList) e.storeId = null;
+      else if (inList) e.storeId = s.id;
+    });
+    localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(empList));
+  }
   return s;
 }
 

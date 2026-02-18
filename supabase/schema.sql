@@ -23,12 +23,31 @@ create table if not exists public.sales (
   date timestamptz default now()
 );
 
+-- Stores table (before employees so employees can reference store_id)
+create table if not exists public.stores (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  color text not null default '#333333',
+  display_order integer not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Store daily sales (amount per store per day)
+create table if not exists public.store_daily_sales (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid references public.stores(id) on delete cascade not null,
+  date date not null,
+  amount numeric not null default 0,
+  unique(store_id, date)
+);
+
 -- Employees table
 create table if not exists public.employees (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   salary_rate numeric not null default 0,
   display_order integer not null default 0,
+  store_id uuid references public.stores(id) on delete set null,
   created_at timestamptz default now()
 );
 
@@ -37,6 +56,9 @@ create table if not exists public.employees (
 
 -- For existing databases: run this if employees table already exists without display_order
 -- alter table public.employees add column if not exists display_order integer not null default 0;
+
+-- For existing databases: run after stores exists: alter table public.employees add column if not exists store_id uuid references public.stores(id) on delete set null;
+-- For existing databases: alter table public.stores add column if not exists color text not null default '#333333';
 
 -- Attendance table (one row per employee per day when present)
 create table if not exists public.attendance (
@@ -53,23 +75,6 @@ create table if not exists public.weekly_payments (
   week_start date not null,
   paid boolean not null default false,
   unique(employee_id, week_start)
-);
-
--- Stores table
-create table if not exists public.stores (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  display_order integer not null default 0,
-  created_at timestamptz default now()
-);
-
--- Store daily sales (amount per store per day)
-create table if not exists public.store_daily_sales (
-  id uuid primary key default gen_random_uuid(),
-  store_id uuid references public.stores(id) on delete cascade not null,
-  date date not null,
-  amount numeric not null default 0,
-  unique(store_id, date)
 );
 
 -- Allow anonymous read/write for the app (optional: tighten with Row Level Security later)

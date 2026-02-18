@@ -355,6 +355,10 @@
   font-weight: 500;
 }
 
+.employee-name-by-store {
+  font-weight: inherit;
+}
+
 .attendance-table .col-drag-handle {
   cursor: grab;
   user-select: none;

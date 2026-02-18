@@ -4,7 +4,8 @@ import {
   saveStore,
   deleteStore,
   getStoreSalesForWeek,
-  saveStoreDailySale
+  saveStoreDailySale,
+  getEmployees
 } from '../services/database';
 import './StoresManager.css';
 
@@ -38,7 +39,8 @@ export default function StoresManager() {
   const [error, setError] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
+  const [employees, setEmployees] = useState([]);
   const [editingCell, setEditingCell] = useState(null);
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
@@ -66,6 +68,7 @@ export default function StoresManager() {
       .finally(() => setLoading(false));
   }, [start, end]);
 
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -84,13 +87,18 @@ export default function StoresManager() {
 
   const handleStoreSubmit = async (e) => {
     e.preventDefault();
-    const store = { id: formData.id || undefined, name: formData.name.trim() };
+    const store = {
+      id: formData.id || undefined,
+      name: formData.name.trim(),
+      color: formData.color || '#333333',
+      linkedEmployeeIds: formData.linkedEmployeeIds || []
+    };
     if (!store.name) return;
     setError(null);
     try {
       await saveStore(store);
       loadData();
-      setFormData({ id: '', name: '' });
+      setFormData({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
       setShowForm(false);
     } catch (err) {
       setError(err?.message || 'Failed to save store');
@@ -109,8 +117,33 @@ export default function StoresManager() {
   };
 
   const handleEditStore = (store) => {
-    setFormData({ id: store.id, name: store.name });
-    setShowForm(true);
+    getEmployees().then((emps) => {
+      setEmployees(emps);
+      setFormData({
+        id: store.id,
+        name: store.name,
+        color: store.color || '#333333',
+        linkedEmployeeIds: emps.filter((e) => e.storeId === store.id).map((e) => e.id)
+      });
+      setShowForm(true);
+    });
+  };
+
+  const handleAddStore = () => {
+    getEmployees().then((emps) => {
+      setEmployees(emps);
+      setFormData({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
+      setShowForm(true);
+    });
+  };
+
+  const toggleEmployeeForStore = (employeeId) => {
+    setFormData((prev) => ({
+      ...prev,
+      linkedEmployeeIds: prev.linkedEmployeeIds.includes(employeeId)
+        ? prev.linkedEmployeeIds.filter((id) => id !== employeeId)
+        : [...prev.linkedEmployeeIds, employeeId]
+    }));
   };
 
   const getSaleForDay = (storeId, dateStr) => {
@@ -262,21 +295,51 @@ export default function StoresManager() {
       {activeSubTab === 'stores' && (
         <div className="store-list-section">
           <div className="store-list-header">
-            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            <button onClick={() => (showForm ? setShowForm(false) : handleAddStore())} className="btn-primary">
               {showForm ? 'Cancel' : '+ Add Store'}
             </button>
           </div>
           {showForm && (
-            <form onSubmit={handleStoreSubmit} className="stores-form">
+            <form onSubmit={handleStoreSubmit} className="stores-form stores-form-full">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Store Name *</label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter store name"
+                    required
+                  />
+                </div>
+                <div className="form-group form-group-color">
+                  <label>Color (for calendar)</label>
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    title="Color for employee names in attendance calendar"
+                  />
+                </div>
+              </div>
               <div className="form-group">
-                <label>Store Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter store name"
-                  required
-                />
+                <label>Employees in this store</label>
+                <div className="employee-checkbox-list">
+                  {employees.length === 0 ? (
+                    <p className="form-hint">No employees yet. Add employees in the Attendance tab.</p>
+                  ) : (
+                    employees.map((emp) => (
+                      <label key={emp.id} className="employee-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={formData.linkedEmployeeIds.includes(emp.id)}
+                          onChange={() => toggleEmployeeForStore(emp.id)}
+                        />
+                        <span>{emp.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
               <button type="submit" className="btn-primary">
                 {formData.id ? 'Update' : 'Add'} Store
