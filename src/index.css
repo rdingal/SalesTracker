@@ -16,6 +16,7 @@
   --tab-active-bg: #4CAF50;
   --error-bg: #fee;
   --error-text: #c00;
+  --today-highlight: rgba(76, 175, 80, 0.2);
 }
 
 [data-theme="dark"] {
@@ -31,6 +32,35 @@
   --tab-active-bg: #4CAF50;
   --error-bg: #3d2020;
   --error-text: #ff6b6b;
+  --today-highlight: rgba(76, 175, 80, 0.35);
+}
+
+.attendance-table .col-day.col-today,
+.attendance-table th.col-day.col-today,
+.stores-table .col-day.col-today,
+.stores-table th.col-day.col-today {
+  background: var(--today-highlight) !important;
+}
+
+.attendance-table tbody tr.row-paid .col-day.col-today {
+  background: rgba(76, 175, 80, 0.4) !important;
+}
+
+[data-theme="dark"] .attendance-table tbody tr.row-paid .col-day.col-today {
+  background: rgba(76, 175, 80, 0.5) !important;
+}
+
+.today-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  color: #2e7d32;
+}
+
+[data-theme="dark"] .today-label {
+  color: #81c784;
 }
 
 :root {

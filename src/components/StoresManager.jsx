@@ -54,6 +54,11 @@ export default function StoresManager() {
     return dates;
   }, [start]);
 
+  const todayColumnIndex = useMemo(() => {
+    const todayStr = toDateStr(new Date());
+    return weekDates.findIndex((d) => toDateStr(d) === todayStr);
+  }, [weekDates]);
+
   const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -235,9 +240,10 @@ export default function StoresManager() {
                 <tr>
                   <th className="col-store">Store</th>
                   {weekDates.map((d, i) => (
-                    <th key={i} className="col-day">
+                    <th key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''}`}>
                       <div className="day-name">{DAYS[i]}</div>
                       <div className="day-date">{d.getDate()}</div>
+                      {i === todayColumnIndex && <div className="today-label">Today</div>}
                     </th>
                   ))}
                   <th className="col-total">Total</th>
@@ -251,7 +257,7 @@ export default function StoresManager() {
                       const dateStr = toDateStr(d);
                       const value = getSaleForDay(store.id, dateStr);
                       return (
-                        <td key={i} className="col-day">
+                        <td key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''}`}>
                           <input
                             type="number"
                             min="0"

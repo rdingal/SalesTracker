@@ -58,6 +58,11 @@ export default function AttendanceManager() {
     return dates;
   }, [start]);
 
+  const todayColumnIndex = useMemo(() => {
+    const todayStr = toDateStr(new Date());
+    return weekDates.findIndex((d) => toDateStr(d) === todayStr);
+  }, [weekDates]);
+
   const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -279,9 +284,10 @@ export default function AttendanceManager() {
                 <tr>
                   <th className="col-employee">Employee</th>
                   {weekDates.map((d, i) => (
-                    <th key={i} className="col-day">
+                    <th key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''}`}>
                       <div className="day-name">{DAYS[i]}</div>
                       <div className="day-date">{d.getDate()}</div>
+                      {i === todayColumnIndex && <div className="today-label">Today</div>}
                     </th>
                   ))}
                   <th className="col-total">Total Pay</th>
@@ -317,7 +323,7 @@ export default function AttendanceManager() {
                       const dateStr = toDateStr(d);
                       const present = isPresent(emp.id, dateStr);
                       return (
-                        <td key={i} className="col-day">
+                        <td key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''}`}>
                           <button
                             type="button"
                             className={`attendance-cell ${present ? 'present' : ''}`}
