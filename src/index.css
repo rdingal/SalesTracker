@@ -2,6 +2,37 @@
   box-sizing: border-box;
 }
 
+:root,
+[data-theme="light"] {
+  --bg-page: #f0f2f5;
+  --bg-card: #ffffff;
+  --bg-card-alt: #f8f9fa;
+  --text: #333333;
+  --text-muted: #666666;
+  --border: #e0e0e0;
+  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --tab-bg: #ffffff;
+  --tab-hover: #f0f0f0;
+  --tab-active-bg: #4CAF50;
+  --error-bg: #fee;
+  --error-text: #c00;
+}
+
+[data-theme="dark"] {
+  --bg-page: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-card-alt: #0f3460;
+  --text: #e8e8e8;
+  --text-muted: #b0b0b0;
+  --border: #2a2a4a;
+  --header-bg: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+  --tab-bg: #16213e;
+  --tab-hover: #1a3a5c;
+  --tab-active-bg: #4CAF50;
+  --error-bg: #3d2020;
+  --error-text: #ff6b6b;
+}
+
 :root {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -13,14 +44,122 @@ body {
   padding: 20px;
   min-width: 320px;
   min-height: 100vh;
-  background: #f0f2f5;
-  color: #333;
+  background: var(--bg-page);
+  color: var(--text);
   -webkit-text-size-adjust: 100%;
 }
 
 #root {
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Theme-aware content cards and sections */
+.attendance-manager,
+.inventory-manager,
+.sales-tracker,
+.stores-manager,
+.analytics {
+  background: var(--bg-card) !important;
+  color: var(--text);
+}
+
+.attendance-manager h2,
+.inventory-manager h2,
+.sales-tracker h2,
+.stores-manager h2,
+.analytics h2,
+.attendance-manager h3,
+.stores-manager h3,
+.analytics h3 {
+  color: var(--text) !important;
+}
+
+.attendance-sub-tabs,
+.stores-sub-tabs {
+  background: var(--bg-card-alt) !important;
+}
+
+.attendance-sub-tabs .sub-tab,
+.stores-sub-tabs .sub-tab {
+  color: var(--text-muted);
+}
+
+.attendance-sub-tabs .sub-tab:hover,
+.stores-sub-tabs .sub-tab:hover {
+  background: var(--tab-hover) !important;
+}
+
+.attendance-form,
+.stores-form,
+.stores-form-full,
+.inventory-form,
+.sales-form {
+  background: var(--bg-card-alt) !important;
+}
+
+.attendance-form .form-group label,
+.stores-form .form-group label,
+.inventory-form .form-group label,
+.sales-form .form-group label {
+  color: var(--text-muted) !important;
+}
+
+.empty-state {
+  color: var(--text-muted) !important;
+}
+
+.analytics-controls {
+  background: var(--bg-card-alt) !important;
+}
+
+.analytics-controls .control-group label {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .attendance-table th,
+[data-theme="dark"] .attendance-table td,
+[data-theme="dark"] .stores-table th,
+[data-theme="dark"] .stores-table td,
+[data-theme="dark"] .inventory-table th,
+[data-theme="dark"] .inventory-table td,
+[data-theme="dark"] .sales-table th,
+[data-theme="dark"] .sales-table td {
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .attendance-table thead .col-employee,
+[data-theme="dark"] .attendance-table .col-employee,
+[data-theme="dark"] .stores-table thead .col-store,
+[data-theme="dark"] .stores-table .col-store {
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .attendance-table th,
+[data-theme="dark"] .stores-table th,
+[data-theme="dark"] .inventory-table th,
+[data-theme="dark"] .sales-table th {
+  background: var(--bg-card-alt) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .employee-list,
+[data-theme="dark"] .store-list,
+[data-theme="dark"] .employee-item,
+[data-theme="dark"] .store-item {
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .employee-name,
+[data-theme="dark"] .store-name,
+[data-theme="dark"] .employee-salary,
+[data-theme="dark"] .store-name-cell {
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .attendance-calendar,
+[data-theme="dark"] .stores-calendar {
+  border-color: var(--border) !important;
 }
 
 @media (max-width: 600px) {

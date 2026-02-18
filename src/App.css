@@ -6,12 +6,34 @@
 }
 
 .app-header {
+  position: relative;
   text-align: center;
   padding: 32px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--header-bg);
   color: white;
   border-radius: 8px;
   margin-bottom: 24px;
+}
+
+.theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .app-header h1 {
@@ -29,7 +51,7 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
-  background: white;
+  background: var(--tab-bg);
   padding: 8px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -44,18 +66,18 @@
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-muted);
   border-radius: 4px;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .tab:hover {
-  background: #f0f0f0;
+  background: var(--tab-hover);
 }
 
 .tab.active {
-  background: #4CAF50;
+  background: var(--tab-active-bg);
   color: white;
 }
 
@@ -66,9 +88,9 @@
 .app-footer {
   text-align: center;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--bg-card-alt);
   border-radius: 8px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .app-footer p {
@@ -79,8 +101,8 @@
 .error-message {
   padding: 12px;
   margin-bottom: 16px;
-  background: #fee;
-  color: #c00;
+  background: var(--error-bg);
+  color: var(--error-text);
   border-radius: 6px;
   font-size: 14px;
 }
@@ -101,6 +123,13 @@
 
   .app-header p {
     font-size: 14px;
+  }
+
+  .theme-toggle {
+    top: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 13px;
   }
 
   .tab-nav {
