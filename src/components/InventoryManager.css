@@ -57,7 +57,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #2196F3;
 }
 
 .inventory-list {
@@ -97,7 +97,7 @@
 }
 
 .btn-primary {
-  background: #4CAF50;
+  background: #2196F3;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -108,7 +108,7 @@
 }
 
 .btn-primary:hover {
-  background: #45a049;
+  background: #1976D2;
 }
 
 .btn-small {

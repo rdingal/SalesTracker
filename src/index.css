@@ -13,10 +13,10 @@
   --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   --tab-bg: #ffffff;
   --tab-hover: #f0f0f0;
-  --tab-active-bg: #4CAF50;
+  --tab-active-bg: #2196F3;
   --error-bg: #fee;
   --error-text: #c00;
-  --today-highlight: rgba(76, 175, 80, 0.2);
+  --today-highlight: rgba(33, 150, 243, 0.2);
 }
 
 [data-theme="dark"] {
@@ -29,10 +29,10 @@
   --header-bg: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
   --tab-bg: #16213e;
   --tab-hover: #1a3a5c;
-  --tab-active-bg: #4CAF50;
+  --tab-active-bg: #2196F3;
   --error-bg: #3d2020;
   --error-text: #ff6b6b;
-  --today-highlight: rgba(76, 175, 80, 0.35);
+  --today-highlight: rgba(33, 150, 243, 0.35);
 }
 
 .attendance-table .col-day.col-today,
@@ -43,11 +43,24 @@
 }
 
 .attendance-table tbody tr.row-paid .col-day.col-today {
-  background: rgba(76, 175, 80, 0.4) !important;
+  background: rgba(33, 150, 243, 0.4) !important;
 }
 
 [data-theme="dark"] .attendance-table tbody tr.row-paid .col-day.col-today {
+  background: rgba(33, 150, 243, 0.5) !important;
+}
+
+[data-theme="dark"] .attendance-table .col-net,
+[data-theme="dark"] .attendance-table td.col-net {
+  background: rgba(76, 175, 80, 0.35) !important;
+  color: #a5d6a7 !important;
+  border-left-color: #66bb6a !important;
+}
+
+[data-theme="dark"] .attendance-table thead .col-net {
   background: rgba(76, 175, 80, 0.5) !important;
+  color: #c8e6c9 !important;
+  border-left-color: #66bb6a !important;
 }
 
 .today-label {
@@ -56,11 +69,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 2px;
-  color: #2e7d32;
+  color: #1565c0;
 }
 
 [data-theme="dark"] .today-label {
-  color: #81c784;
+  color: #64b5f6;
 }
 
 :root {

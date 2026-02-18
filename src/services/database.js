@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   EMPLOYEE_ORDER: 'salestracker_employee_order',
   ATTENDANCE: 'salestracker_attendance',
   WEEKLY_PAYMENTS: 'salestracker_weekly_payments',
+  WEEKLY_DEDUCTIONS: 'salestracker_weekly_deductions',
   STORES: 'salestracker_stores',
   STORE_ORDER: 'salestracker_store_order',
   STORE_DAILY_SALES: 'salestracker_store_daily_sales'
@@ -152,6 +153,28 @@ async function setWeeklyPaidSupabase(employeeId, weekStartStr, paid) {
     .from('weekly_payments')
     .upsert(
       { employee_id: employeeId, week_start: weekStartStr, paid },
+      { onConflict: 'employee_id,week_start' }
+    );
+  if (error) throw error;
+}
+
+async function getDeductionsForWeekSupabase(weekStartStr) {
+  const { data, error } = await supabase
+    .from('weekly_deductions')
+    .select('employee_id, amount')
+    .eq('week_start', weekStartStr);
+  if (error) throw error;
+  return (data || []).map((row) => ({
+    employeeId: row.employee_id,
+    amount: parseFloat(row.amount || 0)
+  }));
+}
+
+async function saveDeductionSupabase(employeeId, weekStartStr, amount) {
+  const { error } = await supabase
+    .from('weekly_deductions')
+    .upsert(
+      { employee_id: employeeId, week_start: weekStartStr, amount },
       { onConflict: 'employee_id,week_start' }
     );
   if (error) throw error;
@@ -420,6 +443,32 @@ function setWeeklyPaidLocal(employeeId, weekStartStr, paid) {
   localStorage.setItem(STORAGE_KEYS.WEEKLY_PAYMENTS, JSON.stringify(payments));
 }
 
+function getDeductionsLocal() {
+  const data = localStorage.getItem(STORAGE_KEYS.WEEKLY_DEDUCTIONS);
+  return data ? JSON.parse(data) : [];
+}
+
+function getDeductionsForWeekLocal(weekStartStr) {
+  const list = getDeductionsLocal();
+  return list
+    .filter((d) => d.weekStart === weekStartStr)
+    .map((d) => ({ employeeId: d.employeeId, amount: parseFloat(d.amount || 0) }));
+}
+
+function saveDeductionLocal(employeeId, weekStartStr, amount) {
+  const list = getDeductionsLocal();
+  const idx = list.findIndex(
+    (d) => d.employeeId === employeeId && d.weekStart === weekStartStr
+  );
+  const record = { employeeId, weekStart: weekStartStr, amount: Number(amount) || 0 };
+  if (idx >= 0) {
+    list[idx] = record;
+  } else {
+    list.push(record);
+  }
+  localStorage.setItem(STORAGE_KEYS.WEEKLY_DEDUCTIONS, JSON.stringify(list));
+}
+
 function getStoreOrderLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.STORE_ORDER);
   return data ? JSON.parse(data) : [];
@@ -585,6 +634,16 @@ export const setWeeklyPaid = (employeeId, weekStartStr, paid) =>
     ? setWeeklyPaidSupabase(employeeId, weekStartStr, paid)
     : Promise.resolve(setWeeklyPaidLocal(employeeId, weekStartStr, paid));
 
+export const getDeductionsForWeek = (weekStartStr) =>
+  useSupabase()
+    ? getDeductionsForWeekSupabase(weekStartStr)
+    : Promise.resolve(getDeductionsForWeekLocal(weekStartStr));
+
+export const saveDeduction = (employeeId, weekStartStr, amount) =>
+  useSupabase()
+    ? saveDeductionSupabase(employeeId, weekStartStr, amount)
+    : Promise.resolve(saveDeductionLocal(employeeId, weekStartStr, amount));
+
 export const getStores = () =>
   useSupabase() ? getStoresSupabase() : Promise.resolve(getStoresLocal());
 
@@ -609,6 +668,7 @@ export const clearAllData = () => {
     return Promise.all([
       supabase.from('store_daily_sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('stores').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
+      supabase.from('weekly_deductions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('weekly_payments').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('attendance').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('employees').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
@@ -619,6 +679,7 @@ export const clearAllData = () => {
   localStorage.removeItem(STORAGE_KEYS.STORE_DAILY_SALES);
   localStorage.removeItem(STORAGE_KEYS.STORE_ORDER);
   localStorage.removeItem(STORAGE_KEYS.STORES);
+  localStorage.removeItem(STORAGE_KEYS.WEEKLY_DEDUCTIONS);
   localStorage.removeItem(STORAGE_KEYS.WEEKLY_PAYMENTS);
   localStorage.removeItem(STORAGE_KEYS.ATTENDANCE);
   localStorage.removeItem(STORAGE_KEYS.EMPLOYEE_ORDER);

@@ -7,6 +7,8 @@ import {
   toggleAttendance,
   getWeeklyPaymentsForWeek,
   setWeeklyPaid,
+  getDeductionsForWeek,
+  saveDeduction,
   updateEmployeeOrder,
   getStores
 } from '../services/database';
@@ -51,6 +53,8 @@ export default function AttendanceManager() {
   const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
   const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
   const [stores, setStores] = useState([]);
+  const [deductions, setDeductions] = useState([]);
+  const [editingDeduction, setEditingDeduction] = useState(null);
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
   const weekDates = useMemo(() => {
@@ -77,12 +81,14 @@ export default function AttendanceManager() {
       getEmployees(),
       getAttendanceForWeek(startStr, endStr),
       getWeeklyPaymentsForWeek(startStr),
+      getDeductionsForWeek(startStr),
       getStores()
     ])
-      .then(([emps, att, payments, storeList]) => {
+      .then(([emps, att, payments, deductionsData, storeList]) => {
         setEmployees(emps);
         setAttendance(att);
         setWeeklyPayments(payments);
+        setDeductions(deductionsData || []);
         setStores(storeList || []);
       })
       .catch((err) => setError(err?.message || 'Failed to load data'))
@@ -161,6 +167,35 @@ export default function AttendanceManager() {
     const rate = emp.salaryRate != null ? Number(emp.salaryRate) : 0;
     return daysPresent * rate;
   };
+
+  const getDeduction = (employeeId) => {
+    const d = deductions.find((x) => x.employeeId === employeeId);
+    return d ? d.amount : 0;
+  };
+
+  const getDeductionDisplayValue = (employeeId) => {
+    if (editingDeduction?.employeeId === employeeId) return editingDeduction.value;
+    const amount = getDeduction(employeeId);
+    return amount > 0 ? String(amount) : '';
+  };
+
+  const handleDeductionBlur = async (employeeId, value) => {
+    setEditingDeduction(null);
+    const amount = parseFloat(value) || 0;
+    setError(null);
+    const startStr = toDateStr(start);
+    try {
+      await saveDeduction(employeeId, startStr, amount);
+      setDeductions((prev) => {
+        const rest = prev.filter((d) => d.employeeId !== employeeId);
+        return amount > 0 ? [...rest, { employeeId, amount }] : rest;
+      });
+    } catch (err) {
+      setError(err?.message || 'Failed to save deduction');
+    }
+  };
+
+  const getNetPay = (emp) => Math.max(0, getWeeklyPay(emp) - getDeduction(emp.id));
 
   const handlePaidChange = async (employeeId, checked) => {
     setError(null);
@@ -295,7 +330,9 @@ export default function AttendanceManager() {
                       {i === todayColumnIndex && <div className="today-label">Today</div>}
                     </th>
                   ))}
+                  <th className="col-deductions">Deductions</th>
                   <th className="col-total">Total Pay</th>
+                  <th className="col-net">Net Pay</th>
                   <th className="col-paid">Paid</th>
                 </tr>
               </thead>
@@ -340,8 +377,32 @@ export default function AttendanceManager() {
                         </td>
                       );
                     })}
+                    <td className="col-deductions">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="deduction-input"
+                        value={getDeductionDisplayValue(emp.id)}
+                        onChange={(e) =>
+                          setEditingDeduction({ employeeId: emp.id, value: e.target.value })
+                        }
+                        onFocus={() =>
+                          setEditingDeduction({
+                            employeeId: emp.id,
+                            value: getDeductionDisplayValue(emp.id)
+                          })
+                        }
+                        onBlur={(e) => handleDeductionBlur(emp.id, e.target.value)}
+                        placeholder="0"
+                        title="Cash advance, deductions (₱)"
+                      />
+                    </td>
                     <td className="col-total total-cell">
                       ₱{getWeeklyPay(emp).toFixed(2)}
+                    </td>
+                    <td className="col-net total-cell net-cell">
+                      ₱{getNetPay(emp).toFixed(2)}
                     </td>
                     <td className="col-paid">
                       <label className="paid-checkbox-label">

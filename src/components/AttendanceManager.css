@@ -53,7 +53,7 @@
 
 .attendance-form .form-group input:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #2196F3;
 }
 
 .attendance-sub-tabs {
@@ -84,7 +84,7 @@
 }
 
 .attendance-sub-tabs .sub-tab.active {
-  background: #4CAF50;
+  background: #2196F3;
   color: white;
 }
 
@@ -321,7 +321,7 @@
 
 .attendance-table {
   width: 100%;
-  min-width: 650px;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -382,7 +382,7 @@
 }
 
 .attendance-table tbody tr.drag-over {
-  border-top: 2px solid #4CAF50;
+  border-top: 2px solid #2196F3;
 }
 
 .attendance-table tbody tr.draggable-row:hover .drag-handle {
@@ -390,15 +390,15 @@
 }
 
 .attendance-table tbody tr.row-paid {
-  background: #b5dfb8;
+  background: #bbdefb;
 }
 
 .attendance-table tbody tr.row-paid td {
-  background: #b5dfb8;
+  background: #bbdefb;
 }
 
 .attendance-table tbody tr.row-paid .col-employee {
-  background: #b5dfb8;
+  background: #bbdefb;
 }
 
 .attendance-table .col-day {
@@ -413,6 +413,44 @@
 
 .attendance-table thead .col-total {
   background: #f0f0f0;
+}
+
+.attendance-table .col-deductions {
+  min-width: 88px;
+}
+
+.attendance-table .col-net {
+  min-width: 88px;
+  font-weight: 700;
+  font-size: 15px;
+  background: #e8f5e9 !important;
+  border-left: 2px solid #4CAF50;
+  color: #1b5e20;
+}
+
+.attendance-table thead .col-net {
+  background: #c8e6c9 !important;
+  color: #2e7d32;
+  border-left: 2px solid #4CAF50;
+}
+
+.attendance-table thead .col-deductions {
+  background: #f0f0f0;
+}
+
+.deduction-input {
+  width: 100%;
+  max-width: 80px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.deduction-input:focus {
+  outline: none;
+  border-color: #2196F3;
 }
 
 .total-cell {
@@ -437,7 +475,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #4CAF50;
+  accent-color: #2196F3;
 }
 
 .day-name {
@@ -468,17 +506,17 @@
 }
 
 .attendance-cell.present {
-  background: #4CAF50;
-  border-color: #45a049;
+  background: #2196F3;
+  border-color: #1976D2;
   color: white;
 }
 
 .attendance-cell.present:hover {
-  background: #45a049;
+  background: #1976D2;
 }
 
 .btn-primary {
-  background: #4CAF50;
+  background: #2196F3;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -489,7 +527,7 @@
 }
 
 .btn-primary:hover {
-  background: #45a049;
+  background: #1976D2;
 }
 
 .btn-small {

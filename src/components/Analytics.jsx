@@ -36,7 +36,7 @@ function getDaysBetween(start, end) {
   return days;
 }
 
-const CHART_COLORS = ['#4CAF50', '#2196F3', '#FF9800', '#9C27B0', '#f44336', '#00BCD4'];
+const CHART_COLORS = ['#2196F3', '#43a047', '#FF9800', '#9C27B0', '#f44336', '#00BCD4'];
 
 export default function Analytics() {
   const [stores, setStores] = useState([]);
