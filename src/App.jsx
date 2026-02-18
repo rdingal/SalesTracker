@@ -3,6 +3,7 @@ import InventoryManager from './components/InventoryManager'
 import SalesTracker from './components/SalesTracker'
 import AttendanceManager from './components/AttendanceManager'
 import StoresManager from './components/StoresManager'
+import Analytics from './components/Analytics'
 import './App.css'
 
 function App() {
@@ -40,6 +41,12 @@ function App() {
         >
           Sales
         </button>
+        <button
+          className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          Analytics
+        </button>
       </nav>
 
       <main className="app-content">
@@ -47,6 +54,7 @@ function App() {
         {activeTab === 'sales' && <SalesTracker />}
         {activeTab === 'attendance' && <AttendanceManager />}
         {activeTab === 'stores' && <StoresManager />}
+        {activeTab === 'analytics' && <Analytics />}
       </main>
 
     </div>
