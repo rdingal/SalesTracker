@@ -32,6 +32,7 @@ create table if not exists public.stores (
   monthly_rent numeric not null default 0,
   monthly_utility_bills numeric not null default 0,
   monthly_other_expenses numeric not null default 0,
+  markup_percentage numeric not null default 0,
   created_at timestamptz default now()
 );
 
@@ -78,6 +79,7 @@ create table if not exists public.employees (
 -- alter table public.stores add column if not exists monthly_rent numeric not null default 0;
 -- alter table public.stores add column if not exists monthly_utility_bills numeric not null default 0;
 -- alter table public.stores add column if not exists monthly_other_expenses numeric not null default 0;
+-- alter table public.stores add column if not exists markup_percentage numeric not null default 0;
 -- For existing databases: create store_monthly_expenses table (see create table above).
 
 -- Attendance table (one row per employee per day when present)

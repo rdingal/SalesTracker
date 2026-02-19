@@ -64,6 +64,7 @@ export default function StoresManager() {
     id: '',
     name: '',
     color: '#333333',
+    markupPercentage: '',
     monthlyRent: '',
     monthlyUtilityBills: '',
     monthlyOtherExpenses: '',
@@ -131,6 +132,7 @@ export default function StoresManager() {
       id: formData.id || undefined,
       name: formData.name.trim(),
       color: formData.color || '#333333',
+      markupPercentage: parseFloat(formData.markupPercentage) || 0,
       monthlyRent: parseFloat(formData.monthlyRent) || 0,
       monthlyUtilityBills: parseFloat(formData.monthlyUtilityBills) || 0,
       monthlyOtherExpenses: parseFloat(formData.monthlyOtherExpenses) || 0,
@@ -151,6 +153,7 @@ export default function StoresManager() {
         id: '',
         name: '',
         color: '#333333',
+        markupPercentage: '',
         monthlyRent: '',
         monthlyUtilityBills: '',
         monthlyOtherExpenses: '',
@@ -180,6 +183,7 @@ export default function StoresManager() {
         id: store.id,
         name: store.name,
         color: store.color || '#333333',
+        markupPercentage: store.markupPercentage != null ? String(store.markupPercentage) : '',
         monthlyRent: store.monthlyRent != null ? String(store.monthlyRent) : '',
         monthlyUtilityBills: store.monthlyUtilityBills != null ? String(store.monthlyUtilityBills) : '',
         monthlyOtherExpenses: store.monthlyOtherExpenses != null ? String(store.monthlyOtherExpenses) : '',
@@ -196,6 +200,7 @@ export default function StoresManager() {
         id: '',
         name: '',
         color: '#333333',
+        markupPercentage: '',
         monthlyRent: '',
         monthlyUtilityBills: '',
         monthlyOtherExpenses: '',
@@ -449,6 +454,29 @@ export default function StoresManager() {
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     title="Color for employee names in attendance calendar"
                   />
+                </div>
+                <div className="form-group form-group-markup">
+                  <label>Markup %</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={formData.markupPercentage}
+                    onChange={(e) => setFormData({ ...formData, markupPercentage: e.target.value })}
+                    placeholder="0"
+                    title="Fixed markup percentage for break-even calculations"
+                  />
+                </div>
+                <div className="form-group form-group-margin">
+                  <label>Margin %</label>
+                  <span className="margin-value" title="Margin = Markup / (1 + Markup)">
+                    {(() => {
+                      const markup = parseFloat(formData.markupPercentage) || 0;
+                      const margin = markup >= 0 ? (markup / 100) / (1 + markup / 100) * 100 : 0;
+                      return `${margin.toFixed(2)}%`;
+                    })()}
+                  </span>
                 </div>
               </div>
               <div className="form-group form-group-expenses">

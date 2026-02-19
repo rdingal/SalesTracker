@@ -304,7 +304,8 @@ async function getStoresSupabase() {
     color: row.color || '#333333',
     monthlyRent: row.monthly_rent != null ? parseFloat(row.monthly_rent) : 0,
     monthlyUtilityBills: row.monthly_utility_bills != null ? parseFloat(row.monthly_utility_bills) : 0,
-    monthlyOtherExpenses: row.monthly_other_expenses != null ? parseFloat(row.monthly_other_expenses) : 0
+    monthlyOtherExpenses: row.monthly_other_expenses != null ? parseFloat(row.monthly_other_expenses) : 0,
+    markupPercentage: row.markup_percentage != null ? parseFloat(row.markup_percentage) : 0
   }));
 }
 
@@ -314,7 +315,8 @@ async function saveStoreSupabase(store) {
     color: store.color || '#333333',
     monthly_rent: store.monthlyRent != null ? Number(store.monthlyRent) : 0,
     monthly_utility_bills: store.monthlyUtilityBills != null ? Number(store.monthlyUtilityBills) : 0,
-    monthly_other_expenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0
+    monthly_other_expenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0,
+    markup_percentage: store.markupPercentage != null ? Number(store.markupPercentage) : 0
   };
   if (store.id) {
     const { data, error } = await supabase
@@ -336,7 +338,8 @@ async function saveStoreSupabase(store) {
       color: data.color || '#333333',
       monthlyRent: data.monthly_rent != null ? parseFloat(data.monthly_rent) : 0,
       monthlyUtilityBills: data.monthly_utility_bills != null ? parseFloat(data.monthly_utility_bills) : 0,
-      monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0
+      monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0,
+      markupPercentage: data.markup_percentage != null ? parseFloat(data.markup_percentage) : 0
     };
   }
   const { data: maxRow } = await supabase
@@ -354,7 +357,8 @@ async function saveStoreSupabase(store) {
     color: data.color || '#333333',
     monthlyRent: data.monthly_rent != null ? parseFloat(data.monthly_rent) : 0,
     monthlyUtilityBills: data.monthly_utility_bills != null ? parseFloat(data.monthly_utility_bills) : 0,
-    monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0
+    monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0,
+    markupPercentage: data.markup_percentage != null ? parseFloat(data.markup_percentage) : 0
   };
 }
 
@@ -617,7 +621,8 @@ function getStoresLocal() {
     color: s.color || '#333333',
     monthlyRent: s.monthlyRent != null ? parseFloat(s.monthlyRent) : 0,
     monthlyUtilityBills: s.monthlyUtilityBills != null ? parseFloat(s.monthlyUtilityBills) : 0,
-    monthlyOtherExpenses: s.monthlyOtherExpenses != null ? parseFloat(s.monthlyOtherExpenses) : 0
+    monthlyOtherExpenses: s.monthlyOtherExpenses != null ? parseFloat(s.monthlyOtherExpenses) : 0,
+    markupPercentage: s.markupPercentage != null ? parseFloat(s.markupPercentage) : 0
   }));
   if (order.length === 0) return stores.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(stores.map((s) => [s.id, s]));
@@ -640,7 +645,8 @@ function saveStoreLocal(store) {
     color: store.color || '#333333',
     monthlyRent: store.monthlyRent != null ? Number(store.monthlyRent) : 0,
     monthlyUtilityBills: store.monthlyUtilityBills != null ? Number(store.monthlyUtilityBills) : 0,
-    monthlyOtherExpenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0
+    monthlyOtherExpenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0,
+    markupPercentage: store.markupPercentage != null ? Number(store.markupPercentage) : 0
   };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORES) || '[]');
   const rawIndex = rawList.findIndex((x) => x.id === s.id);
@@ -663,7 +669,7 @@ function saveStoreLocal(store) {
     });
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(empList));
   }
-  return { id: s.id, name: s.name, color: s.color, monthlyRent: s.monthlyRent, monthlyUtilityBills: s.monthlyUtilityBills, monthlyOtherExpenses: s.monthlyOtherExpenses };
+  return { id: s.id, name: s.name, color: s.color, monthlyRent: s.monthlyRent, monthlyUtilityBills: s.monthlyUtilityBills, monthlyOtherExpenses: s.monthlyOtherExpenses, markupPercentage: s.markupPercentage };
 }
 
 function deleteStoreLocal(id) {
