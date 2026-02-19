@@ -231,24 +231,14 @@ export default function Analytics() {
 
         <div className="control-group">
           <label>Analyze</label>
-          <div className="chart-type-toggle">
-            <button
-              type="button"
-              className={analyzeEnabled ? 'active' : ''}
-              onClick={() => setAnalyzeEnabled(true)}
-              title="Show break-even summary and reference lines"
-            >
-              On
-            </button>
-            <button
-              type="button"
-              className={!analyzeEnabled ? 'active' : ''}
-              onClick={() => setAnalyzeEnabled(false)}
-              title="Hide break-even analysis"
-            >
-              Off
-            </button>
-          </div>
+          <button
+            type="button"
+            className={`analyze-toggle ${analyzeEnabled ? 'active' : ''}`}
+            onClick={() => setAnalyzeEnabled((prev) => !prev)}
+            title={analyzeEnabled ? 'Hide break-even analysis' : 'Show break-even summary and reference lines'}
+          >
+            {analyzeEnabled ? 'On' : 'Off'}
+          </button>
         </div>
       </div>
 
