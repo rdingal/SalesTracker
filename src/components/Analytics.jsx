@@ -53,7 +53,7 @@ export default function Analytics() {
   const [dateTo, setDateTo] = useState(() => getDateStr(new Date()));
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
   const [chartType, setChartType] = useState('line');
-  const [analyzeEnabled, setAnalyzeEnabled] = useState(true);
+  const [analyzeEnabled, setAnalyzeEnabled] = useState(false);
 
   const loadData = () => {
     setLoading(true);
