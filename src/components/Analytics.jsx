@@ -9,9 +9,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  ReferenceLine
 } from 'recharts';
-import { getStores, getStoreSalesForWeek } from '../services/database';
+import { getStores, getStoreSalesForWeek, getEmployees } from '../services/database';
 import './Analytics.css';
 
 /** Date as YYYY-MM-DD in the user's local timezone. */
@@ -41,6 +42,7 @@ const CHART_COLORS = ['#2196F3', '#43a047', '#FF9800', '#9C27B0', '#f44336', '#0
 export default function Analytics() {
   const [stores, setStores] = useState([]);
   const [sales, setSales] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(() => {
@@ -51,14 +53,16 @@ export default function Analytics() {
   const [dateTo, setDateTo] = useState(() => getDateStr(new Date()));
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
   const [chartType, setChartType] = useState('line');
+  const [analyzeEnabled, setAnalyzeEnabled] = useState(true);
 
   const loadData = () => {
     setLoading(true);
     setError(null);
-    Promise.all([getStores(), getStoreSalesForWeek(dateFrom, dateTo)])
-      .then(([s, salesData]) => {
+    Promise.all([getStores(), getStoreSalesForWeek(dateFrom, dateTo), getEmployees()])
+      .then(([s, salesData, emps]) => {
         setStores(s);
         setSales(salesData);
+        setEmployees(emps || []);
         setSelectedStoreIds((prev) => {
           const valid = prev.filter((id) => s.some((st) => st.id === id));
           return valid.length ? valid : s.map((st) => st.id);
@@ -98,6 +102,47 @@ export default function Analytics() {
     () => stores.filter((s) => selectedStoreIds.includes(s.id)),
     [stores, selectedStoreIds]
   );
+
+  /** Break-even daily sales per store (same formula as Stores tab) */
+  const breakEvenByStoreId = useMemo(() => {
+    const map = new Map();
+    stores.forEach((store) => {
+      const rent = Number(store.monthlyRent) || 0;
+      const utility = Number(store.monthlyUtilityBills) || 0;
+      const other = Number(store.monthlyOtherExpenses) || 0;
+      const fixedDaily = (rent + utility + other) / 30;
+      const mainEmployeeDaily = (employees || []).filter(
+        (e) => e.storeId === store.id && e.employeeType === 'main'
+      ).reduce((sum, e) => sum + (e.salaryRate != null ? Number(e.salaryRate) : 0), 0);
+      const totalDailyExpenses = fixedDaily + mainEmployeeDaily;
+      const markup = Number(store.markupPercentage) || 0;
+      const marginDecimal = markup >= 0 ? (markup / 100) / (1 + markup / 100) : 0;
+      const breakEven = marginDecimal > 0 ? totalDailyExpenses / marginDecimal : 0;
+      map.set(store.id, breakEven);
+    });
+    return map;
+  }, [stores, employees]);
+
+  /** For selected stores: break-even, avg daily sales in range, and status */
+  const breakEvenSummary = useMemo(() => {
+    const days = getDaysBetween(new Date(dateFrom), new Date(dateTo));
+    const numDays = Math.max(days.length, 1);
+    return selectedStores.map((store) => {
+      const breakEven = breakEvenByStoreId.get(store.id) ?? 0;
+      const totalInRange = sales
+        .filter((s) => s.storeId === store.id)
+        .reduce((sum, s) => sum + (s.amount || 0), 0);
+      const avgDaily = totalInRange / numDays;
+      const isAbove = breakEven > 0 ? avgDaily >= breakEven : true;
+      return {
+        storeId: store.id,
+        storeName: store.name,
+        breakEven,
+        avgDaily,
+        isAbove
+      };
+    });
+  }, [selectedStores, breakEvenByStoreId, sales, dateFrom, dateTo]);
 
   const toggleStore = (storeId) => {
     setSelectedStoreIds((prev) =>
@@ -183,6 +228,28 @@ export default function Analytics() {
             </button>
           </div>
         </div>
+
+        <div className="control-group">
+          <label>Analyze</label>
+          <div className="chart-type-toggle">
+            <button
+              type="button"
+              className={analyzeEnabled ? 'active' : ''}
+              onClick={() => setAnalyzeEnabled(true)}
+              title="Show break-even summary and reference lines"
+            >
+              On
+            </button>
+            <button
+              type="button"
+              className={!analyzeEnabled ? 'active' : ''}
+              onClick={() => setAnalyzeEnabled(false)}
+              title="Hide break-even analysis"
+            >
+              Off
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="chart-container">
@@ -193,51 +260,105 @@ export default function Analytics() {
         ) : selectedStores.length === 0 ? (
           <p className="empty-state">Select at least one store to track.</p>
         ) : (
-          <ResponsiveContainer width="100%" height={400}>
-            {chartType === 'line' ? (
-              <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} label={{ value: 'Sales (₱)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip
-                  formatter={(value, name) => [`₱${Number(value).toFixed(2)}`, name]}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.dateLabel}
-                />
-                <Legend />
-                {selectedStores.map((store, i) => (
-                  <Line
-                    key={store.id}
-                    type="monotone"
-                    dataKey={store.id}
-                    name={store.name}
-                    stroke={store.color || CHART_COLORS[i % CHART_COLORS.length]}
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                ))}
-              </LineChart>
-            ) : (
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} label={{ value: 'Sales (₱)', angle: -90, position: 'insideLeft' }} />
-                <Tooltip
-                  formatter={(value, name) => [`₱${Number(value).toFixed(2)}`, name]}
-                  labelFormatter={(_, payload) => payload?.[0]?.payload?.dateLabel}
-                />
-                <Legend />
-                {selectedStores.map((store, i) => (
-                  <Bar
-                    key={store.id}
-                    dataKey={store.id}
-                    name={store.name}
-                    fill={store.color || CHART_COLORS[i % CHART_COLORS.length]}
-                    radius={[2, 2, 0, 0]}
-                  />
-                ))}
-              </BarChart>
+          <>
+            {analyzeEnabled && (
+              <div className="break-even-summary">
+                <h4 className="break-even-summary-title">Break-even (avg daily vs target)</h4>
+                <div className="break-even-summary-grid">
+                  {breakEvenSummary.map(({ storeName, breakEven, avgDaily, isAbove }) => (
+                    <div
+                      key={storeName}
+                      className={`break-even-summary-item ${isAbove ? 'above' : 'below'}`}
+                      title={`Break-even: ₱${breakEven.toFixed(2)}/day · Avg in range: ₱${avgDaily.toFixed(2)}/day`}
+                    >
+                      <span className="break-even-store-name">{storeName}</span>
+                      <span className="break-even-status">{isAbove ? 'Above' : 'Below'}</span>
+                      <span className="break-even-detail">
+                        ₱{avgDaily.toFixed(0)} vs ₱{breakEven.toFixed(0)}/day
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={400}>
+              {chartType === 'line' ? (
+                <LineChart
+                  data={chartData}
+                  margin={{ top: 5, right: analyzeEnabled ? 140 : 20, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} label={{ value: 'Sales (₱)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip
+                    formatter={(value, name) => [`₱${Number(value).toFixed(2)}`, name]}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.dateLabel}
+                  />
+                  <Legend layout="horizontal" verticalAlign="bottom" wrapperStyle={{ paddingTop: 12 }} />
+                  {analyzeEnabled &&
+                    selectedStores.map((store, i) => {
+                      const breakEven = breakEvenByStoreId.get(store.id);
+                      return breakEven > 0 ? (
+                        <ReferenceLine
+                          key={`ref-${store.id}`}
+                          y={breakEven}
+                          stroke={store.color || CHART_COLORS[i % CHART_COLORS.length]}
+                          strokeDasharray="5 5"
+                          label={{ value: `${store.name} break-even`, position: 'right', fontSize: 11 }}
+                        />
+                      ) : null;
+                    })}
+                  {selectedStores.map((store, i) => (
+                    <Line
+                      key={store.id}
+                      type="monotone"
+                      dataKey={store.id}
+                      name={store.name}
+                      stroke={store.color || CHART_COLORS[i % CHART_COLORS.length]}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  ))}
+                </LineChart>
+              ) : (
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 5, right: analyzeEnabled ? 140 : 20, left: 0, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dateLabel" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} label={{ value: 'Sales (₱)', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip
+                    formatter={(value, name) => [`₱${Number(value).toFixed(2)}`, name]}
+                    labelFormatter={(_, payload) => payload?.[0]?.payload?.dateLabel}
+                  />
+                  <Legend layout="horizontal" verticalAlign="bottom" wrapperStyle={{ paddingTop: 12 }} />
+                  {analyzeEnabled &&
+                    selectedStores.map((store, i) => {
+                      const breakEven = breakEvenByStoreId.get(store.id);
+                      return breakEven > 0 ? (
+                        <ReferenceLine
+                          key={`ref-${store.id}`}
+                          y={breakEven}
+                          stroke={store.color || CHART_COLORS[i % CHART_COLORS.length]}
+                          strokeDasharray="5 5"
+                          label={{ value: `${store.name} break-even`, position: 'right', fontSize: 11 }}
+                        />
+                      ) : null;
+                    })}
+                  {selectedStores.map((store, i) => (
+                    <Bar
+                      key={store.id}
+                      dataKey={store.id}
+                      name={store.name}
+                      fill={store.color || CHART_COLORS[i % CHART_COLORS.length]}
+                      radius={[2, 2, 0, 0]}
+                    />
+                  ))}
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          </>
         )}
       </div>
     </div>
