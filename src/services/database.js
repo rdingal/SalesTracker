@@ -112,7 +112,8 @@ async function getEmployeesSupabase() {
     id: row.id,
     name: row.name,
     salaryRate: row.salary_rate != null ? parseFloat(row.salary_rate) : 0,
-    storeId: row.store_id || null
+    storeId: row.store_id || null,
+    employeeType: row.employee_type === 'reliever' ? 'reliever' : 'main'
   }));
 }
 
@@ -127,10 +128,12 @@ async function updateEmployeeOrderSupabase(orderedEmployeeIds) {
 }
 
 async function saveEmployeeSupabase(employee) {
+  const employeeType = employee.employeeType === 'reliever' ? 'reliever' : 'main';
   let row = {
     name: employee.name,
     salary_rate: employee.salaryRate != null ? employee.salaryRate : 0,
-    store_id: employee.storeId ?? null
+    store_id: employee.storeId ?? null,
+    employee_type: employeeType
   };
   if (!employee.id) {
     const { data: maxRow } = await supabase
@@ -144,16 +147,16 @@ async function saveEmployeeSupabase(employee) {
   if (employee.id) {
     const { data, error } = await supabase
       .from('employees')
-      .update({ name: row.name, salary_rate: row.salary_rate, store_id: row.store_id })
+      .update({ name: row.name, salary_rate: row.salary_rate, store_id: row.store_id, employee_type: row.employee_type })
       .eq('id', employee.id)
       .select()
       .single();
     if (error) throw error;
-    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null };
+    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main' };
   }
   const { data, error } = await supabase.from('employees').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null };
+  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main' };
 }
 
 async function deleteEmployeeSupabase(id) {
@@ -459,7 +462,8 @@ function getEmployeesLocal() {
     id: e.id,
     name: e.name,
     salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0,
-    storeId: e.storeId ?? null
+    storeId: e.storeId ?? null,
+    employeeType: e.employeeType === 'reliever' ? 'reliever' : 'main'
   }));
   if (order.length === 0) return employees.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(employees.map((e) => [e.id, e]));
@@ -480,15 +484,17 @@ function updateEmployeeOrderLocal(orderedEmployeeIds) {
 }
 
 function saveEmployeeLocal(employee) {
+  const employeeType = employee.employeeType === 'reliever' ? 'reliever' : 'main';
   const emp = {
     id: employee.id || crypto.randomUUID(),
     name: employee.name,
     salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0,
-    storeId: employee.storeId ?? null
+    storeId: employee.storeId ?? null,
+    employeeType
   };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
   const rawIndex = rawList.findIndex((e) => e.id === emp.id);
-  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate, storeId: emp.storeId };
+  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate, storeId: emp.storeId, employeeType: emp.employeeType };
   if (rawIndex >= 0) {
     rawList[rawIndex] = raw;
   } else {

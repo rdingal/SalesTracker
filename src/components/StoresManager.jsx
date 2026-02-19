@@ -8,7 +8,8 @@ import {
   getEmployees,
   getAttendanceForWeek,
   getStoreMonthlyExpenses,
-  saveStoreMonthlyExpenses
+  saveStoreMonthlyExpenses,
+  saveEmployee
 } from '../services/database';
 import './StoresManager.css';
 
@@ -265,6 +266,23 @@ export default function StoresManager() {
         ? prev.linkedEmployeeIds.filter((id) => id !== employeeId)
         : [...prev.linkedEmployeeIds, employeeId]
     }));
+  };
+
+  const handleEmployeeTypeChange = async (emp, newType) => {
+    setError(null);
+    try {
+      await saveEmployee({
+        id: emp.id,
+        name: emp.name,
+        salaryRate: emp.salaryRate,
+        storeId: emp.storeId,
+        employeeType: newType
+      });
+      const updated = await getEmployees();
+      setEmployees(updated);
+    } catch (err) {
+      setError(err?.message || 'Failed to update employee type');
+    }
   };
 
   const getSaleForDay = (storeId, dateStr) => {
@@ -530,14 +548,26 @@ export default function StoresManager() {
                     <p className="form-hint">No employees yet. Add employees in the Attendance tab.</p>
                   ) : (
                     employees.map((emp) => (
-                      <label key={emp.id} className="employee-checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.linkedEmployeeIds.includes(emp.id)}
-                          onChange={() => toggleEmployeeForStore(emp.id)}
-                        />
-                        <span>{emp.name}</span>
-                      </label>
+                      <div key={emp.id} className="employee-checkbox-row">
+                        <label className="employee-checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={formData.linkedEmployeeIds.includes(emp.id)}
+                            onChange={() => toggleEmployeeForStore(emp.id)}
+                          />
+                          <span>{emp.name}</span>
+                        </label>
+                        <select
+                          value={emp.employeeType === 'reliever' ? 'reliever' : 'main'}
+                          onChange={(e) => handleEmployeeTypeChange(emp, e.target.value)}
+                          className="employee-type-select"
+                          title={formData.linkedEmployeeIds.includes(emp.id) ? 'Main or Reliever' : 'Assign employee to store first'}
+                          disabled={!formData.linkedEmployeeIds.includes(emp.id)}
+                        >
+                          <option value="main">Main</option>
+                          <option value="reliever">Reliever</option>
+                        </select>
+                      </div>
                     ))
                   )}
                 </div>

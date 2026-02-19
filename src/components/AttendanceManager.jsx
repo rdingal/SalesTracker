@@ -50,7 +50,7 @@ export default function AttendanceManager() {
   const [error, setError] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '' });
+  const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '', employeeType: 'main' });
   const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
   const [stores, setStores] = useState([]);
   const [deductions, setDeductions] = useState([]);
@@ -116,14 +116,15 @@ export default function AttendanceManager() {
     const employee = {
       id: formData.id || undefined,
       name: formData.name.trim(),
-      salaryRate: parseFloat(formData.salaryRate) || 0
+      salaryRate: parseFloat(formData.salaryRate) || 0,
+      employeeType: formData.employeeType === 'reliever' ? 'reliever' : 'main'
     };
     if (!employee.name) return;
     setError(null);
     try {
       await saveEmployee(employee);
       loadData();
-      setFormData({ id: '', name: '', salaryRate: '' });
+      setFormData({ id: '', name: '', salaryRate: '', employeeType: 'main' });
       setShowForm(false);
     } catch (err) {
       setError(err?.message || 'Failed to save employee');
@@ -145,7 +146,8 @@ export default function AttendanceManager() {
     setFormData({
       id: emp.id,
       name: emp.name,
-      salaryRate: emp.salaryRate != null ? String(emp.salaryRate) : ''
+      salaryRate: emp.salaryRate != null ? String(emp.salaryRate) : '',
+      employeeType: emp.employeeType === 'reliever' ? 'reliever' : 'main'
     });
     setShowForm(true);
   };
@@ -451,6 +453,17 @@ export default function AttendanceManager() {
                   onChange={(e) => setFormData({ ...formData, salaryRate: e.target.value })}
                   placeholder="0"
                 />
+              </div>
+              <div className="form-group">
+                <label>Type</label>
+                <select
+                  value={formData.employeeType}
+                  onChange={(e) => setFormData({ ...formData, employeeType: e.target.value })}
+                  className="employee-type-select"
+                >
+                  <option value="main">Main</option>
+                  <option value="reliever">Reliever</option>
+                </select>
               </div>
               <button type="submit" className="btn-primary">
                 {formData.id ? 'Update' : 'Add'} Employee

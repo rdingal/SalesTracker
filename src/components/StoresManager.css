@@ -205,10 +205,10 @@
 
 .employee-checkbox-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 24px;
+  flex-direction: column;
+  gap: 10px;
   margin-top: 8px;
-  max-height: 200px;
+  max-height: 280px;
   overflow-y: auto;
   padding: 12px;
   background: #fafafa;
@@ -222,6 +222,18 @@
   min-width: 0;
 }
 
+.employee-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.employee-checkbox-row .employee-checkbox-item {
+  flex: 1;
+  min-width: 120px;
+}
+
 .employee-checkbox-item {
   display: flex;
   align-items: center;
@@ -232,6 +244,26 @@
 
 .employee-checkbox-item input {
   cursor: pointer;
+}
+
+.employee-type-select {
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  min-width: 90px;
+}
+
+.employee-type-select:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.employee-type-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f0f0f0;
 }
 
 .form-hint {

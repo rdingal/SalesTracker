@@ -64,6 +64,7 @@ create table if not exists public.employees (
   salary_rate numeric not null default 0,
   display_order integer not null default 0,
   store_id uuid references public.stores(id) on delete set null,
+  employee_type text not null default 'main' check (employee_type in ('main', 'reliever')),
   created_at timestamptz default now()
 );
 
@@ -74,6 +75,7 @@ create table if not exists public.employees (
 -- alter table public.employees add column if not exists display_order integer not null default 0;
 
 -- For existing databases: run after stores exists: alter table public.employees add column if not exists store_id uuid references public.stores(id) on delete set null;
+-- For existing databases: alter table public.employees add column if not exists employee_type text not null default 'main';
 -- For existing databases: alter table public.stores add column if not exists color text not null default '#333333';
 -- For existing databases: add monthly expense columns to stores:
 -- alter table public.stores add column if not exists monthly_rent numeric not null default 0;

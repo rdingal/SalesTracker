@@ -56,6 +56,20 @@
   border-color: #2196F3;
 }
 
+.attendance-form .employee-type-select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+}
+
+.attendance-form .employee-type-select:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
 .attendance-sub-tabs {
   display: flex;
   gap: 8px;
