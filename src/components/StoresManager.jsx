@@ -96,15 +96,36 @@ export default function StoresManager() {
     return weekDates.findIndex((d) => toDateStr(d) === todayStr);
   }, [weekDates]);
 
+  /** Break-even daily sales per store for calendar coloring (same formula as form) */
+  const breakEvenByStoreId = useMemo(() => {
+    const map = new Map();
+    stores.forEach((store) => {
+      const rent = Number(store.monthlyRent) || 0;
+      const utility = Number(store.monthlyUtilityBills) || 0;
+      const other = Number(store.monthlyOtherExpenses) || 0;
+      const fixedDaily = (rent + utility + other) / 30;
+      const mainEmployeeDaily = employees
+        .filter((e) => e.storeId === store.id && e.employeeType === 'main')
+        .reduce((sum, e) => sum + (e.salaryRate != null ? Number(e.salaryRate) : 0), 0);
+      const totalDailyExpenses = fixedDaily + mainEmployeeDaily;
+      const markup = Number(store.markupPercentage) || 0;
+      const marginDecimal = markup >= 0 ? (markup / 100) / (1 + markup / 100) : 0;
+      const breakEven = marginDecimal > 0 ? totalDailyExpenses / marginDecimal : 0;
+      map.set(store.id, breakEven);
+    });
+    return map;
+  }, [stores, employees]);
+
   const loadData = useCallback(() => {
     setLoading(true);
     setError(null);
     const startStr = toDateStr(start);
     const endStr = toDateStr(end);
-    Promise.all([getStores(), getStoreSalesForWeek(startStr, endStr)])
-      .then(([s, sales]) => {
+    Promise.all([getStores(), getStoreSalesForWeek(startStr, endStr), getEmployees()])
+      .then(([s, sales, emps]) => {
         setStores(s);
         setStoreSales(sales);
+        setEmployees(emps);
       })
       .catch((err) => setError(err?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
@@ -412,15 +433,20 @@ export default function StoresManager() {
                     <td className="col-store store-name-cell">{store.name}</td>
                     {weekDates.map((d, i) => {
                       const dateStr = toDateStr(d);
-                      const value = getSaleForDay(store.id, dateStr);
+                      const displayValue = getDisplayValue(store.id, dateStr);
+                      const amount = parseFloat(displayValue) || 0;
+                      const breakEven = breakEvenByStoreId.get(store.id) ?? 0;
+                      const saleClass = breakEven > 0
+                        ? (amount >= breakEven ? 'sale-at-or-above-breakeven' : 'sale-below-breakeven')
+                        : '';
                       return (
-                        <td key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''}`}>
+                        <td key={i} className={`col-day ${i === todayColumnIndex ? 'col-today' : ''} ${saleClass}`}>
                           <input
                             type="number"
                             min="0"
                             step="0.01"
                             className="sale-input"
-                            value={getDisplayValue(store.id, dateStr)}
+                            value={displayValue}
                             onChange={(e) =>
                               setEditingCell({
                                 storeId: store.id,

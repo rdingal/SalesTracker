@@ -392,6 +392,16 @@
   border-color: #2196F3;
 }
 
+.stores-table td.sale-at-or-above-breakeven .sale-input {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.stores-table td.sale-below-breakeven .sale-input {
+  color: #c62828;
+  font-weight: 600;
+}
+
 .total-cell {
   font-weight: 600;
   color: #333;
