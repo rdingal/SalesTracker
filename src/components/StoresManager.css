@@ -146,8 +146,11 @@
   border-radius: 4px;
 }
 
-.form-group-margin .margin-value {
+.form-group-margin .margin-value,
+.form-group-breakeven .margin-value {
   display: block;
+  width: 100%;
+  box-sizing: border-box;
   padding: 10px;
   font-size: 14px;
   font-weight: 500;
@@ -156,6 +159,16 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   min-height: 20px;
+}
+
+.margin-input {
+  font-family: inherit;
+  cursor: default;
+}
+
+.margin-input:focus {
+  outline: none;
+  border-color: #ddd;
 }
 
 .form-group-expenses {

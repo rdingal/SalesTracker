@@ -259,6 +259,29 @@ export default function StoresManager() {
     return total;
   }, [employees, formData.linkedEmployeeIds, monthAttendance]);
 
+  /** Total daily expenses = (rent + utility + other)/30 + sum of daily salary of main employees in store */
+  const breakevenDailySales = useMemo(() => {
+    const rent = parseFloat(formData.monthlyRent) || 0;
+    const utility = parseFloat(formData.monthlyUtilityBills) || 0;
+    const other = parseFloat(formData.monthlyOtherExpenses) || 0;
+    const fixedDaily = (rent + utility + other) / 30;
+    const mainEmployeeDaily = employees
+      .filter((e) => formData.linkedEmployeeIds.includes(e.id) && e.employeeType === 'main')
+      .reduce((sum, e) => sum + (e.salaryRate != null ? Number(e.salaryRate) : 0), 0);
+    const totalDailyExpenses = fixedDaily + mainEmployeeDaily;
+    const markup = parseFloat(formData.markupPercentage) || 0;
+    const marginDecimal = markup >= 0 ? (markup / 100) / (1 + markup / 100) : 0;
+    if (marginDecimal <= 0) return 0;
+    return totalDailyExpenses / marginDecimal;
+  }, [
+    formData.monthlyRent,
+    formData.monthlyUtilityBills,
+    formData.monthlyOtherExpenses,
+    formData.markupPercentage,
+    formData.linkedEmployeeIds,
+    employees
+  ]);
+
   const toggleEmployeeForStore = (employeeId) => {
     setFormData((prev) => ({
       ...prev,
@@ -488,13 +511,27 @@ export default function StoresManager() {
                 </div>
                 <div className="form-group form-group-margin">
                   <label>Margin %</label>
-                  <span className="margin-value" title="Margin = Markup / (1 + Markup)">
-                    {(() => {
+                  <input
+                    type="text"
+                    readOnly
+                    className="margin-value margin-input"
+                    title="Margin = Markup / (1 + Markup)"
+                    value={(() => {
                       const markup = parseFloat(formData.markupPercentage) || 0;
                       const margin = markup >= 0 ? (markup / 100) / (1 + markup / 100) * 100 : 0;
                       return `${margin.toFixed(2)}%`;
                     })()}
-                  </span>
+                  />
+                </div>
+                <div className="form-group form-group-breakeven">
+                  <label>Break-even Daily Sales</label>
+                  <input
+                    type="text"
+                    readOnly
+                    className="margin-value margin-input breakeven-value"
+                    title="Total daily expenses ÷ Margin. Total daily = (Rent + Utilities + Other)/30 + sum of daily salary of Main employees."
+                    value={`₱${breakevenDailySales.toFixed(2)}`}
+                  />
                 </div>
               </div>
               <div className="form-group form-group-expenses">
