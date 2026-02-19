@@ -10,8 +10,46 @@ const STORAGE_KEYS = {
   WEEKLY_DEDUCTIONS: 'salestracker_weekly_deductions',
   STORES: 'salestracker_stores',
   STORE_ORDER: 'salestracker_store_order',
-  STORE_DAILY_SALES: 'salestracker_store_daily_sales'
+  STORE_DAILY_SALES: 'salestracker_store_daily_sales',
+  STORE_MONTHLY_EXPENSES: 'salestracker_store_monthly_expenses'
 };
+
+// ---- In-memory cache for Supabase reads (avoids refetch when switching tabs) ----
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const cache = new Map();
+
+function cacheGet(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function cacheSet(key, data) {
+  cache.set(key, { data, ts: Date.now() });
+}
+
+function cacheInvalidate(keyOrPrefix) {
+  if (cache.has(keyOrPrefix)) {
+    cache.delete(keyOrPrefix);
+    return;
+  }
+  for (const key of cache.keys()) {
+    if (key.startsWith(keyOrPrefix)) cache.delete(key);
+  }
+}
+
+function cachedRead(key, fetchFn) {
+  const hit = cacheGet(key);
+  if (hit !== null) return Promise.resolve(hit);
+  return fetchFn().then((data) => {
+    cacheSet(key, data);
+    return data;
+  });
+}
 
 // ---- Supabase (async) ----
 async function getInventorySupabase() {
@@ -170,6 +208,27 @@ async function getDeductionsForWeekSupabase(weekStartStr) {
   }));
 }
 
+/** Get all deductions for weeks overlapping [startDate, endDate]. Returns { employeeId, amount } summed per employee. */
+async function getDeductionsForDateRangeSupabase(startDate, endDate) {
+  const start = new Date(startDate);
+  const startMinus6 = new Date(start);
+  startMinus6.setDate(start.getDate() - 6);
+  const weekStartFrom = startMinus6.toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('weekly_deductions')
+    .select('employee_id, amount')
+    .gte('week_start', weekStartFrom)
+    .lte('week_start', endDate);
+  if (error) throw error;
+  const byEmployee = {};
+  (data || []).forEach((row) => {
+    const id = row.employee_id;
+    const amt = parseFloat(row.amount || 0);
+    byEmployee[id] = (byEmployee[id] || 0) + amt;
+  });
+  return Object.entries(byEmployee).map(([employeeId, amount]) => ({ employeeId, amount }));
+}
+
 async function saveDeductionSupabase(employeeId, weekStartStr, amount) {
   const { error } = await supabase
     .from('weekly_deductions')
@@ -242,12 +301,21 @@ async function getStoresSupabase() {
   return (data || []).map((row) => ({
     id: row.id,
     name: row.name,
-    color: row.color || '#333333'
+    color: row.color || '#333333',
+    monthlyRent: row.monthly_rent != null ? parseFloat(row.monthly_rent) : 0,
+    monthlyUtilityBills: row.monthly_utility_bills != null ? parseFloat(row.monthly_utility_bills) : 0,
+    monthlyOtherExpenses: row.monthly_other_expenses != null ? parseFloat(row.monthly_other_expenses) : 0
   }));
 }
 
 async function saveStoreSupabase(store) {
-  const row = { name: store.name, color: store.color || '#333333' };
+  const row = {
+    name: store.name,
+    color: store.color || '#333333',
+    monthly_rent: store.monthlyRent != null ? Number(store.monthlyRent) : 0,
+    monthly_utility_bills: store.monthlyUtilityBills != null ? Number(store.monthlyUtilityBills) : 0,
+    monthly_other_expenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0
+  };
   if (store.id) {
     const { data, error } = await supabase
       .from('stores')
@@ -262,7 +330,14 @@ async function saveStoreSupabase(store) {
         await supabase.from('employees').update({ store_id: store.id }).in('id', store.linkedEmployeeIds);
       }
     }
-    return { id: data.id, name: data.name, color: data.color || '#333333' };
+    return {
+      id: data.id,
+      name: data.name,
+      color: data.color || '#333333',
+      monthlyRent: data.monthly_rent != null ? parseFloat(data.monthly_rent) : 0,
+      monthlyUtilityBills: data.monthly_utility_bills != null ? parseFloat(data.monthly_utility_bills) : 0,
+      monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0
+    };
   }
   const { data: maxRow } = await supabase
     .from('stores')
@@ -273,7 +348,14 @@ async function saveStoreSupabase(store) {
   row.display_order = (maxRow?.display_order ?? -1) + 1;
   const { data, error } = await supabase.from('stores').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name, color: data.color || '#333333' };
+  return {
+    id: data.id,
+    name: data.name,
+    color: data.color || '#333333',
+    monthlyRent: data.monthly_rent != null ? parseFloat(data.monthly_rent) : 0,
+    monthlyUtilityBills: data.monthly_utility_bills != null ? parseFloat(data.monthly_utility_bills) : 0,
+    monthlyOtherExpenses: data.monthly_other_expenses != null ? parseFloat(data.monthly_other_expenses) : 0
+  };
 }
 
 async function deleteStoreSupabase(id) {
@@ -302,6 +384,38 @@ async function saveStoreDailySaleSupabase(storeId, dateStr, amount) {
       { store_id: storeId, date: dateStr, amount },
       { onConflict: 'store_id,date' }
     );
+  if (error) throw error;
+}
+
+async function getStoreMonthlyExpensesSupabase(storeId, yearMonth) {
+  const { data, error } = await supabase
+    .from('store_monthly_expenses')
+    .select('monthly_rent, monthly_utility_bills, monthly_employee_salaries, monthly_other_expenses')
+    .eq('store_id', storeId)
+    .eq('year_month', yearMonth)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    monthlyRent: parseFloat(data.monthly_rent || 0),
+    monthlyUtilityBills: parseFloat(data.monthly_utility_bills || 0),
+    monthlyEmployeeSalaries: parseFloat(data.monthly_employee_salaries || 0),
+    monthlyOtherExpenses: parseFloat(data.monthly_other_expenses || 0)
+  };
+}
+
+async function saveStoreMonthlyExpensesSupabase(storeId, yearMonth, expenses) {
+  const row = {
+    store_id: storeId,
+    year_month: yearMonth,
+    monthly_rent: Number(expenses.monthlyRent ?? 0),
+    monthly_utility_bills: Number(expenses.monthlyUtilityBills ?? 0),
+    monthly_employee_salaries: Number(expenses.monthlyEmployeeSalaries ?? 0),
+    monthly_other_expenses: Number(expenses.monthlyOtherExpenses ?? 0)
+  };
+  const { error } = await supabase
+    .from('store_monthly_expenses')
+    .upsert(row, { onConflict: 'store_id,year_month' });
   if (error) throw error;
 }
 
@@ -455,6 +569,25 @@ function getDeductionsForWeekLocal(weekStartStr) {
     .map((d) => ({ employeeId: d.employeeId, amount: parseFloat(d.amount || 0) }));
 }
 
+/** Get all deductions for weeks overlapping [startDate, endDate]. Returns { employeeId, amount } summed per employee. */
+function getDeductionsForDateRangeLocal(startDate, endDate) {
+  const list = getDeductionsLocal();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const startMinus6 = new Date(start);
+  startMinus6.setDate(start.getDate() - 6);
+  const byEmployee = {};
+  list.forEach((d) => {
+    const ws = new Date(d.weekStart);
+    if (ws >= startMinus6 && ws <= end) {
+      const id = d.employeeId;
+      const amt = parseFloat(d.amount || 0);
+      byEmployee[id] = (byEmployee[id] || 0) + amt;
+    }
+  });
+  return Object.entries(byEmployee).map(([employeeId, amount]) => ({ employeeId, amount }));
+}
+
 function saveDeductionLocal(employeeId, weekStartStr, amount) {
   const list = getDeductionsLocal();
   const idx = list.findIndex(
@@ -478,7 +611,14 @@ function getStoresLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.STORES);
   const list = data ? JSON.parse(data) : [];
   const order = getStoreOrderLocal();
-  const stores = list.map((s) => ({ id: s.id, name: s.name, color: s.color || '#333333' }));
+  const stores = list.map((s) => ({
+    id: s.id,
+    name: s.name,
+    color: s.color || '#333333',
+    monthlyRent: s.monthlyRent != null ? parseFloat(s.monthlyRent) : 0,
+    monthlyUtilityBills: s.monthlyUtilityBills != null ? parseFloat(s.monthlyUtilityBills) : 0,
+    monthlyOtherExpenses: s.monthlyOtherExpenses != null ? parseFloat(s.monthlyOtherExpenses) : 0
+  }));
   if (order.length === 0) return stores.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(stores.map((s) => [s.id, s]));
   const ordered = [];
@@ -494,7 +634,14 @@ function getStoresLocal() {
 }
 
 function saveStoreLocal(store) {
-  const s = { id: store.id || crypto.randomUUID(), name: store.name, color: store.color || '#333333' };
+  const s = {
+    id: store.id || crypto.randomUUID(),
+    name: store.name,
+    color: store.color || '#333333',
+    monthlyRent: store.monthlyRent != null ? Number(store.monthlyRent) : 0,
+    monthlyUtilityBills: store.monthlyUtilityBills != null ? Number(store.monthlyUtilityBills) : 0,
+    monthlyOtherExpenses: store.monthlyOtherExpenses != null ? Number(store.monthlyOtherExpenses) : 0
+  };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORES) || '[]');
   const rawIndex = rawList.findIndex((x) => x.id === s.id);
   if (rawIndex >= 0) {
@@ -516,7 +663,7 @@ function saveStoreLocal(store) {
     });
     localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(empList));
   }
-  return s;
+  return { id: s.id, name: s.name, color: s.color, monthlyRent: s.monthlyRent, monthlyUtilityBills: s.monthlyUtilityBills, monthlyOtherExpenses: s.monthlyOtherExpenses };
 }
 
 function deleteStoreLocal(id) {
@@ -564,6 +711,38 @@ function saveStoreDailySaleLocal(storeId, dateStr, amount) {
   localStorage.setItem(STORAGE_KEYS.STORE_DAILY_SALES, JSON.stringify(sales));
 }
 
+function getStoreMonthlyExpensesLocal(storeId, yearMonth) {
+  const data = localStorage.getItem(STORAGE_KEYS.STORE_MONTHLY_EXPENSES);
+  const list = data ? JSON.parse(data) : [];
+  const row = list.find((r) => r.storeId === storeId && r.yearMonth === yearMonth);
+  if (!row) return null;
+  return {
+    monthlyRent: parseFloat(row.monthlyRent || 0),
+    monthlyUtilityBills: parseFloat(row.monthlyUtilityBills || 0),
+    monthlyEmployeeSalaries: parseFloat(row.monthlyEmployeeSalaries || 0),
+    monthlyOtherExpenses: parseFloat(row.monthlyOtherExpenses || 0)
+  };
+}
+
+function saveStoreMonthlyExpensesLocal(storeId, yearMonth, expenses) {
+  const list = JSON.parse(localStorage.getItem(STORAGE_KEYS.STORE_MONTHLY_EXPENSES) || '[]');
+  const idx = list.findIndex((r) => r.storeId === storeId && r.yearMonth === yearMonth);
+  const row = {
+    storeId,
+    yearMonth,
+    monthlyRent: Number(expenses.monthlyRent ?? 0),
+    monthlyUtilityBills: Number(expenses.monthlyUtilityBills ?? 0),
+    monthlyEmployeeSalaries: Number(expenses.monthlyEmployeeSalaries ?? 0),
+    monthlyOtherExpenses: Number(expenses.monthlyOtherExpenses ?? 0)
+  };
+  if (idx >= 0) {
+    list[idx] = row;
+  } else {
+    list.push(row);
+  }
+  localStorage.setItem(STORAGE_KEYS.STORE_MONTHLY_EXPENSES, JSON.stringify(list));
+}
+
 function getSalesLocal() {
   const data = localStorage.getItem(STORAGE_KEYS.SALES);
   return data ? JSON.parse(data) : [];
@@ -582,90 +761,176 @@ function recordSaleLocal(sale) {
   return sale;
 }
 
-// ---- Public API (always async) ----
+// ---- Public API (cached reads when using Supabase; invalidation on write) ----
 export const getInventory = () =>
-  useSupabase() ? getInventorySupabase() : Promise.resolve(getInventoryLocal());
+  useSupabase()
+    ? cachedRead('inventory', getInventorySupabase)
+    : Promise.resolve(getInventoryLocal());
 
 export const saveInventoryItem = (item) =>
-  useSupabase() ? saveInventoryItemSupabase(item) : Promise.resolve(saveInventoryItemLocal(item));
+  useSupabase()
+    ? saveInventoryItemSupabase(item).then((result) => {
+        cacheInvalidate('inventory');
+        return result;
+      })
+    : Promise.resolve(saveInventoryItemLocal(item));
 
 export const deleteInventoryItem = (id) =>
   useSupabase()
-    ? deleteInventoryItemSupabase(id)
+    ? deleteInventoryItemSupabase(id).then(() => {
+        cacheInvalidate('inventory');
+      })
     : Promise.resolve(deleteInventoryItemLocal(id));
 
 export const getSales = () =>
-  useSupabase() ? getSalesSupabase() : Promise.resolve(getSalesLocal());
+  useSupabase()
+    ? cachedRead('sales', getSalesSupabase)
+    : Promise.resolve(getSalesLocal());
 
 export const recordSale = (sale) =>
-  useSupabase() ? recordSaleSupabase(sale) : Promise.resolve(recordSaleLocal(sale));
+  useSupabase()
+    ? recordSaleSupabase(sale).then((result) => {
+        cacheInvalidate('sales');
+        cacheInvalidate('inventory');
+        return result;
+      })
+    : Promise.resolve(recordSaleLocal(sale));
 
 export const getEmployees = () =>
-  useSupabase() ? getEmployeesSupabase() : Promise.resolve(getEmployeesLocal());
+  useSupabase()
+    ? cachedRead('employees', getEmployeesSupabase)
+    : Promise.resolve(getEmployeesLocal());
 
 export const saveEmployee = (employee) =>
-  useSupabase() ? saveEmployeeSupabase(employee) : Promise.resolve(saveEmployeeLocal(employee));
+  useSupabase()
+    ? saveEmployeeSupabase(employee).then((result) => {
+        cacheInvalidate('employees');
+        return result;
+      })
+    : Promise.resolve(saveEmployeeLocal(employee));
 
 export const deleteEmployee = (id) =>
-  useSupabase() ? deleteEmployeeSupabase(id) : Promise.resolve(deleteEmployeeLocal(id));
+  useSupabase()
+    ? deleteEmployeeSupabase(id).then(() => {
+        cacheInvalidate('employees');
+      })
+    : Promise.resolve(deleteEmployeeLocal(id));
 
 export const updateEmployeeOrder = (orderedEmployeeIds) =>
   useSupabase()
-    ? updateEmployeeOrderSupabase(orderedEmployeeIds)
+    ? updateEmployeeOrderSupabase(orderedEmployeeIds).then(() => {
+        cacheInvalidate('employees');
+      })
     : Promise.resolve(updateEmployeeOrderLocal(orderedEmployeeIds));
 
 export const getAttendanceForWeek = (startDate, endDate) =>
   useSupabase()
-    ? getAttendanceForWeekSupabase(startDate, endDate)
+    ? cachedRead(`attendance:${startDate}:${endDate}`, () =>
+        getAttendanceForWeekSupabase(startDate, endDate)
+      )
     : Promise.resolve(getAttendanceForWeekLocal(startDate, endDate));
 
 export const toggleAttendance = (employeeId, dateStr) =>
   useSupabase()
-    ? toggleAttendanceSupabase(employeeId, dateStr)
+    ? toggleAttendanceSupabase(employeeId, dateStr).then((result) => {
+        cacheInvalidate('attendance:');
+        return result;
+      })
     : Promise.resolve(toggleAttendanceLocal(employeeId, dateStr));
 
 export const getWeeklyPaymentsForWeek = (weekStartStr) =>
   useSupabase()
-    ? getWeeklyPaymentsForWeekSupabase(weekStartStr)
+    ? cachedRead(`weeklyPayments:${weekStartStr}`, () =>
+        getWeeklyPaymentsForWeekSupabase(weekStartStr)
+      )
     : Promise.resolve(getWeeklyPaymentsForWeekLocal(weekStartStr));
 
 export const setWeeklyPaid = (employeeId, weekStartStr, paid) =>
   useSupabase()
-    ? setWeeklyPaidSupabase(employeeId, weekStartStr, paid)
+    ? setWeeklyPaidSupabase(employeeId, weekStartStr, paid).then(() => {
+        cacheInvalidate('weeklyPayments:');
+      })
     : Promise.resolve(setWeeklyPaidLocal(employeeId, weekStartStr, paid));
 
 export const getDeductionsForWeek = (weekStartStr) =>
   useSupabase()
-    ? getDeductionsForWeekSupabase(weekStartStr)
+    ? cachedRead(`deductions:${weekStartStr}`, () =>
+        getDeductionsForWeekSupabase(weekStartStr)
+      )
     : Promise.resolve(getDeductionsForWeekLocal(weekStartStr));
+
+export const getDeductionsForDateRange = (startDate, endDate) =>
+  useSupabase()
+    ? cachedRead(`deductionsRange:${startDate}:${endDate}`, () =>
+        getDeductionsForDateRangeSupabase(startDate, endDate)
+      )
+    : Promise.resolve(getDeductionsForDateRangeLocal(startDate, endDate));
 
 export const saveDeduction = (employeeId, weekStartStr, amount) =>
   useSupabase()
-    ? saveDeductionSupabase(employeeId, weekStartStr, amount)
+    ? saveDeductionSupabase(employeeId, weekStartStr, amount).then(() => {
+        cacheInvalidate('deductions:');
+        cacheInvalidate('deductionsRange:');
+      })
     : Promise.resolve(saveDeductionLocal(employeeId, weekStartStr, amount));
 
 export const getStores = () =>
-  useSupabase() ? getStoresSupabase() : Promise.resolve(getStoresLocal());
+  useSupabase()
+    ? cachedRead('stores', getStoresSupabase)
+    : Promise.resolve(getStoresLocal());
 
 export const saveStore = (store) =>
-  useSupabase() ? saveStoreSupabase(store) : Promise.resolve(saveStoreLocal(store));
+  useSupabase()
+    ? saveStoreSupabase(store).then((result) => {
+        cacheInvalidate('stores');
+        cacheInvalidate('storeSales:');
+        cacheInvalidate('storeMonthlyExpenses:');
+        return result;
+      })
+    : Promise.resolve(saveStoreLocal(store));
 
 export const deleteStore = (id) =>
-  useSupabase() ? deleteStoreSupabase(id) : Promise.resolve(deleteStoreLocal(id));
+  useSupabase()
+    ? deleteStoreSupabase(id).then(() => {
+        cacheInvalidate('stores');
+        cacheInvalidate('storeSales:');
+        cacheInvalidate('storeMonthlyExpenses:');
+      })
+    : Promise.resolve(deleteStoreLocal(id));
 
 export const getStoreSalesForWeek = (startDate, endDate) =>
   useSupabase()
-    ? getStoreSalesForWeekSupabase(startDate, endDate)
+    ? cachedRead(`storeSales:${startDate}:${endDate}`, () =>
+        getStoreSalesForWeekSupabase(startDate, endDate)
+      )
     : Promise.resolve(getStoreSalesForWeekLocal(startDate, endDate));
 
 export const saveStoreDailySale = (storeId, dateStr, amount) =>
   useSupabase()
-    ? saveStoreDailySaleSupabase(storeId, dateStr, amount)
+    ? saveStoreDailySaleSupabase(storeId, dateStr, amount).then(() => {
+        cacheInvalidate('storeSales:');
+      })
     : Promise.resolve(saveStoreDailySaleLocal(storeId, dateStr, amount));
 
+export const getStoreMonthlyExpenses = (storeId, yearMonth) =>
+  useSupabase()
+    ? cachedRead(`storeMonthlyExpenses:${storeId}:${yearMonth}`, () =>
+        getStoreMonthlyExpensesSupabase(storeId, yearMonth)
+      )
+    : Promise.resolve(getStoreMonthlyExpensesLocal(storeId, yearMonth));
+
+export const saveStoreMonthlyExpenses = (storeId, yearMonth, expenses) =>
+  useSupabase()
+    ? saveStoreMonthlyExpensesSupabase(storeId, yearMonth, expenses).then(() => {
+        cacheInvalidate(`storeMonthlyExpenses:${storeId}:${yearMonth}`);
+      })
+    : Promise.resolve(saveStoreMonthlyExpensesLocal(storeId, yearMonth, expenses));
+
 export const clearAllData = () => {
+  cache.clear();
   if (useSupabase()) {
     return Promise.all([
+      supabase.from('store_monthly_expenses').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('store_daily_sales').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('stores').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
       supabase.from('weekly_deductions').delete().neq('id', '00000000-0000-0000-0000-000000000000'),
@@ -676,6 +941,7 @@ export const clearAllData = () => {
       supabase.from('inventory').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     ]).then(() => {});
   }
+  localStorage.removeItem(STORAGE_KEYS.STORE_MONTHLY_EXPENSES);
   localStorage.removeItem(STORAGE_KEYS.STORE_DAILY_SALES);
   localStorage.removeItem(STORAGE_KEYS.STORE_ORDER);
   localStorage.removeItem(STORAGE_KEYS.STORES);

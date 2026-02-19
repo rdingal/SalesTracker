@@ -5,7 +5,10 @@ import {
   deleteStore,
   getStoreSalesForWeek,
   saveStoreDailySale,
-  getEmployees
+  getEmployees,
+  getAttendanceForWeek,
+  getStoreMonthlyExpenses,
+  saveStoreMonthlyExpenses
 } from '../services/database';
 import './StoresManager.css';
 
@@ -32,6 +35,19 @@ function toDateStr(date) {
   return `${y}-${m}-${day}`;
 }
 
+/** First and last day of month for a given date (YYYY-MM-DD). */
+function getMonthBounds(date) {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const first = new Date(y, m, 1);
+  const last = new Date(y, m + 1, 0);
+  return {
+    firstStr: toDateStr(first),
+    lastStr: toDateStr(last)
+  };
+}
+
 export default function StoresManager() {
   const [stores, setStores] = useState([]);
   const [storeSales, setStoreSales] = useState([]);
@@ -44,9 +60,23 @@ export default function StoresManager() {
   const [error, setError] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
+  const [formData, setFormData] = useState({
+    id: '',
+    name: '',
+    color: '#333333',
+    monthlyRent: '',
+    monthlyUtilityBills: '',
+    monthlyOtherExpenses: '',
+    linkedEmployeeIds: []
+  });
   const [employees, setEmployees] = useState([]);
   const [editingCell, setEditingCell] = useState(null);
+  /** Month for which we show/edit expenses (store form). YYYY-MM. */
+  const [expenseMonth, setExpenseMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [monthAttendance, setMonthAttendance] = useState([]);
 
   const { start, end } = useMemo(() => getWeekBounds(weekStart), [weekStart]);
   const weekDates = useMemo(() => {
@@ -101,14 +131,31 @@ export default function StoresManager() {
       id: formData.id || undefined,
       name: formData.name.trim(),
       color: formData.color || '#333333',
+      monthlyRent: parseFloat(formData.monthlyRent) || 0,
+      monthlyUtilityBills: parseFloat(formData.monthlyUtilityBills) || 0,
+      monthlyOtherExpenses: parseFloat(formData.monthlyOtherExpenses) || 0,
       linkedEmployeeIds: formData.linkedEmployeeIds || []
     };
     if (!store.name) return;
     setError(null);
     try {
-      await saveStore(store);
+      const saved = await saveStore(store);
+      await saveStoreMonthlyExpenses(saved.id, expenseMonth, {
+        monthlyRent: store.monthlyRent,
+        monthlyUtilityBills: store.monthlyUtilityBills,
+        monthlyEmployeeSalaries: computedMonthlySalaries,
+        monthlyOtherExpenses: store.monthlyOtherExpenses
+      });
       loadData();
-      setFormData({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
+      setFormData({
+        id: '',
+        name: '',
+        color: '#333333',
+        monthlyRent: '',
+        monthlyUtilityBills: '',
+        monthlyOtherExpenses: '',
+        linkedEmployeeIds: []
+      });
       setShowForm(false);
     } catch (err) {
       setError(err?.message || 'Failed to save store');
@@ -133,6 +180,9 @@ export default function StoresManager() {
         id: store.id,
         name: store.name,
         color: store.color || '#333333',
+        monthlyRent: store.monthlyRent != null ? String(store.monthlyRent) : '',
+        monthlyUtilityBills: store.monthlyUtilityBills != null ? String(store.monthlyUtilityBills) : '',
+        monthlyOtherExpenses: store.monthlyOtherExpenses != null ? String(store.monthlyOtherExpenses) : '',
         linkedEmployeeIds: emps.filter((e) => e.storeId === store.id).map((e) => e.id)
       });
       setShowForm(true);
@@ -142,10 +192,66 @@ export default function StoresManager() {
   const handleAddStore = () => {
     getEmployees().then((emps) => {
       setEmployees(emps);
-      setFormData({ id: '', name: '', color: '#333333', linkedEmployeeIds: [] });
+      setFormData({
+        id: '',
+        name: '',
+        color: '#333333',
+        monthlyRent: '',
+        monthlyUtilityBills: '',
+        monthlyOtherExpenses: '',
+        linkedEmployeeIds: []
+      });
       setShowForm(true);
     });
   };
+
+  /** Load attendance for the selected expense month when form is open */
+  useEffect(() => {
+    if (!showForm) return;
+    const [y, m] = expenseMonth.split('-').map(Number);
+    const first = new Date(y, m - 1, 1);
+    const { firstStr, lastStr } = getMonthBounds(first);
+    getAttendanceForWeek(firstStr, lastStr)
+      .then(setMonthAttendance)
+      .catch(() => setMonthAttendance([]));
+  }, [showForm, expenseMonth]);
+
+  /** When editing a store and month changes, load saved monthly expenses for that month */
+  useEffect(() => {
+    if (!showForm || !formData.id || !expenseMonth) return;
+    getStoreMonthlyExpenses(formData.id, expenseMonth)
+      .then((saved) => {
+        if (saved) {
+          setFormData((prev) => ({
+            ...prev,
+            monthlyRent: String(saved.monthlyRent),
+            monthlyUtilityBills: String(saved.monthlyUtilityBills),
+            monthlyOtherExpenses: String(saved.monthlyOtherExpenses)
+          }));
+        }
+      })
+      .catch(() => {});
+  }, [showForm, formData.id, expenseMonth]);
+
+  /** Sum of (days present × rate) for employees linked to this store, for the selected month (total pay before deductions) */
+  const computedMonthlySalaries = useMemo(() => {
+    const linkedIds = formData.linkedEmployeeIds;
+    const daysByEmployee = {};
+    monthAttendance.forEach((a) => {
+      if (linkedIds.includes(a.employeeId)) {
+        daysByEmployee[a.employeeId] = (daysByEmployee[a.employeeId] || 0) + 1;
+      }
+    });
+    let total = 0;
+    linkedIds.forEach((empId) => {
+      const emp = employees.find((e) => e.id === empId);
+      if (!emp) return;
+      const days = daysByEmployee[empId] || 0;
+      const rate = emp.salaryRate != null ? Number(emp.salaryRate) : 0;
+      total += days * rate;
+    });
+    return total;
+  }, [employees, formData.linkedEmployeeIds, monthAttendance]);
 
   const toggleEmployeeForStore = (employeeId) => {
     setFormData((prev) => ({
@@ -312,6 +418,18 @@ export default function StoresManager() {
           </div>
           {showForm && (
             <form onSubmit={handleStoreSubmit} className="stores-form stores-form-full">
+              <div className="form-row form-row-month">
+                <div className="form-group">
+                  <label>Expenses for month</label>
+                  <input
+                    type="month"
+                    value={expenseMonth}
+                    onChange={(e) => setExpenseMonth(e.target.value)}
+                    className="month-input"
+                    title="Employee salaries are calculated from attendance and deductions for this month"
+                  />
+                </div>
+              </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Store Name *</label>
@@ -333,7 +451,51 @@ export default function StoresManager() {
                   />
                 </div>
               </div>
-              <div className="form-group">
+              <div className="form-group form-group-expenses">
+                <label>Monthly expenses (₱)</label>
+                <div className="expense-fields">
+                  <div className="expense-row">
+                    <span className="expense-label">Rent</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.monthlyRent}
+                      onChange={(e) => setFormData({ ...formData, monthlyRent: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="expense-row">
+                    <span className="expense-label">Utility bills</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.monthlyUtilityBills}
+                      onChange={(e) => setFormData({ ...formData, monthlyUtilityBills: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="expense-row expense-row-readonly">
+                    <span className="expense-label">Employee salaries</span>
+                    <span className="expense-value" title="Sum of (days present × rate) for linked employees for the selected month">
+                      ₱{computedMonthlySalaries.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="expense-row">
+                    <span className="expense-label">Other</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.monthlyOtherExpenses}
+                      onChange={(e) => setFormData({ ...formData, monthlyOtherExpenses: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="form-group form-group-employees">
                 <label>Employees in this store</label>
                 <div className="employee-checkbox-list">
                   {employees.length === 0 ? (

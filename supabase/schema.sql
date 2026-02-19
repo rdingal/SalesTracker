@@ -29,6 +29,9 @@ create table if not exists public.stores (
   name text not null,
   color text not null default '#333333',
   display_order integer not null default 0,
+  monthly_rent numeric not null default 0,
+  monthly_utility_bills numeric not null default 0,
+  monthly_other_expenses numeric not null default 0,
   created_at timestamptz default now()
 );
 
@@ -39,6 +42,18 @@ create table if not exists public.store_daily_sales (
   date date not null,
   amount numeric not null default 0,
   unique(store_id, date)
+);
+
+-- Store monthly expenses (snapshot per store per month for reports)
+create table if not exists public.store_monthly_expenses (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid references public.stores(id) on delete cascade not null,
+  year_month text not null,
+  monthly_rent numeric not null default 0,
+  monthly_utility_bills numeric not null default 0,
+  monthly_employee_salaries numeric not null default 0,
+  monthly_other_expenses numeric not null default 0,
+  unique(store_id, year_month)
 );
 
 -- Employees table
@@ -59,6 +74,11 @@ create table if not exists public.employees (
 
 -- For existing databases: run after stores exists: alter table public.employees add column if not exists store_id uuid references public.stores(id) on delete set null;
 -- For existing databases: alter table public.stores add column if not exists color text not null default '#333333';
+-- For existing databases: add monthly expense columns to stores:
+-- alter table public.stores add column if not exists monthly_rent numeric not null default 0;
+-- alter table public.stores add column if not exists monthly_utility_bills numeric not null default 0;
+-- alter table public.stores add column if not exists monthly_other_expenses numeric not null default 0;
+-- For existing databases: create store_monthly_expenses table (see create table above).
 
 -- Attendance table (one row per employee per day when present)
 create table if not exists public.attendance (
@@ -95,6 +115,7 @@ alter table public.weekly_payments enable row level security;
 alter table public.weekly_deductions enable row level security;
 alter table public.stores enable row level security;
 alter table public.store_daily_sales enable row level security;
+alter table public.store_monthly_expenses enable row level security;
 
 create policy "Allow all for inventory" on public.inventory
   for all using (true) with check (true);
@@ -118,4 +139,7 @@ create policy "Allow all for stores" on public.stores
   for all using (true) with check (true);
 
 create policy "Allow all for store_daily_sales" on public.store_daily_sales
+  for all using (true) with check (true);
+
+create policy "Allow all for store_monthly_expenses" on public.store_monthly_expenses
   for all using (true) with check (true);

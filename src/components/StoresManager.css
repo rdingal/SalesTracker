@@ -74,6 +74,15 @@
   margin-bottom: 24px;
 }
 
+.stores-form-full {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.stores-form-full .form-group {
+  max-width: 100%;
+}
+
 .stores-form .form-group {
   flex: 1;
   max-width: 280px;
@@ -107,8 +116,25 @@
   margin-bottom: 16px;
 }
 
+.stores-form-full .form-row.form-row-month {
+  margin-bottom: 8px;
+}
+
 .stores-form-full .form-row .form-group {
   max-width: none;
+}
+
+.month-input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.month-input:focus {
+  outline: none;
+  border-color: #2196F3;
 }
 
 .form-group-color input[type="color"] {
@@ -118,6 +144,51 @@
   cursor: pointer;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.form-group-expenses {
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.expense-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+  max-width: 320px;
+}
+
+.expense-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expense-row .expense-label {
+  flex: 0 0 140px;
+  font-size: 14px;
+  color: #555;
+}
+
+.expense-row input {
+  width: 120px;
+  min-width: 80px;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.expense-row-readonly .expense-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
 }
 
 .employee-checkbox-list {
@@ -130,6 +201,13 @@
   padding: 12px;
   background: #fafafa;
   border-radius: 6px;
+  min-width: 0;
+}
+
+.stores-form-full .form-group-employees {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .employee-checkbox-item {
