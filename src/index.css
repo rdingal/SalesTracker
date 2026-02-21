@@ -270,7 +270,17 @@ body {
   border-color: #42a5f5 !important;
 }
 
-/* Darken number input spinner in dark mode: dark block with clear up/down arrows */
+/*
+ * Number input spinner in dark mode:
+ * - Chrome/Edge/Safari: ::-webkit-inner-spin-button is styled below (custom dark + arrows).
+ * - Firefox: does not support those pseudo-elements; hide its default spinner so the
+ *   field stays dark (users can type or use keyboard Up/Down).
+ */
+[data-theme="dark"] .deduction-input {
+  -moz-appearance: textfield;
+}
+
+/* Darken number input spinner in dark mode (Chrome, Edge, Safari): dark block with up/down arrows */
 [data-theme="dark"] .deduction-input::-webkit-inner-spin-button,
 [data-theme="dark"] .deduction-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
