@@ -10,9 +10,10 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  Cell
 } from 'recharts';
-import { getStores, getStoreSalesForWeek, getEmployees } from '../services/database';
+import { getStores, getStoreSalesForWeek, getEmployees, getAttendanceForWeek } from '../services/database';
 import './Analytics.css';
 
 /** Date as YYYY-MM-DD in the user's local timezone. */
@@ -43,6 +44,7 @@ export default function Analytics() {
   const [stores, setStores] = useState([]);
   const [sales, setSales] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(() => {
@@ -58,11 +60,17 @@ export default function Analytics() {
   const loadData = () => {
     setLoading(true);
     setError(null);
-    Promise.all([getStores(), getStoreSalesForWeek(dateFrom, dateTo), getEmployees()])
-      .then(([s, salesData, emps]) => {
+    Promise.all([
+      getStores(),
+      getStoreSalesForWeek(dateFrom, dateTo),
+      getEmployees(),
+      getAttendanceForWeek(dateFrom, dateTo)
+    ])
+      .then(([s, salesData, emps, att]) => {
         setStores(s);
         setSales(salesData);
         setEmployees(emps || []);
+        setAttendance(att || []);
         setSelectedStoreIds((prev) => {
           const valid = prev.filter((id) => s.some((st) => st.id === id));
           return valid.length ? valid : s.map((st) => st.id);
@@ -143,6 +151,115 @@ export default function Analytics() {
       };
     });
   }, [selectedStores, breakEvenByStoreId, sales, dateFrom, dateTo]);
+
+  /** Net profit per store: Gross profit − Expenses. Gross profit = Sales × Margin (only when Analyze on) */
+  const profitSummary = useMemo(() => {
+    const days = getDaysBetween(new Date(dateFrom), new Date(dateTo));
+    const numDays = Math.max(days.length, 1);
+    return selectedStores.map((store) => {
+      const revenue = sales
+        .filter((s) => s.storeId === store.id)
+        .reduce((sum, s) => sum + (s.amount || 0), 0);
+      const markup = Number(store.markupPercentage) || 0;
+      const margin = markup >= 0 ? (markup / 100) / (1 + markup / 100) : 0;
+      const grossProfit = revenue * margin;
+      const rent = Number(store.monthlyRent) || 0;
+      const utility = Number(store.monthlyUtilityBills) || 0;
+      const other = Number(store.monthlyOtherExpenses) || 0;
+      const fixedExpenses = ((rent + utility + other) / 30) * numDays;
+      const storeEmployees = (employees || []).filter((e) => e.storeId === store.id);
+      const laborExpenses = storeEmployees.reduce((sum, emp) => {
+        const daysPresent = attendance.filter(
+          (a) => a.employeeId === emp.id && a.date >= dateFrom && a.date <= dateTo
+        ).length;
+        const rate = emp.salaryRate != null ? Number(emp.salaryRate) : 0;
+        return sum + daysPresent * rate;
+      }, 0);
+      const expenses = fixedExpenses + laborExpenses;
+      const profit = revenue - expenses;
+      const netProfit = grossProfit - expenses;
+      const profitTooltipLines = [
+        'Profit = Revenue − Expenses',
+        `Revenue = total sales in period: ₱${revenue.toFixed(2)}`,
+        `Fixed (prorated): (Rent+Utilities+Other)/30 × ${numDays} days = ₱${fixedExpenses.toFixed(2)}`,
+        `Labor: Σ(days present × daily rate) = ₱${laborExpenses.toFixed(2)}`,
+        `Expenses = ₱${expenses.toFixed(2)}`,
+        `Profit = ₱${profit.toFixed(2)}`
+      ];
+      const netProfitTooltipLines = [
+        'Net profit = Gross profit − Expenses',
+        `Gross profit = Sales × Margin (margin = ${(margin * 100).toFixed(2)}%)`,
+        `Sales in period: ₱${revenue.toFixed(2)} → Gross profit: ₱${grossProfit.toFixed(2)}`,
+        `Fixed (prorated): (Rent+Utilities+Other)/30 × ${numDays} days = ₱${fixedExpenses.toFixed(2)}`,
+        `Labor: Σ(days present × daily rate) = ₱${laborExpenses.toFixed(2)}`,
+        `Expenses = ₱${expenses.toFixed(2)}`,
+        `Net profit = ₱${netProfit.toFixed(2)}`
+      ];
+      return {
+        storeId: store.id,
+        storeName: store.name,
+        storeColor: store.color,
+        revenue,
+        grossProfit,
+        expenses,
+        profit,
+        netProfit,
+        profitTooltip: profitTooltipLines.join('\n'),
+        netProfitTooltip: netProfitTooltipLines.join('\n')
+      };
+    });
+  }, [selectedStores, sales, employees, attendance, dateFrom, dateTo]);
+
+  /** Chart data for profit (Revenue − Expenses) bar chart */
+  const profitChartData = useMemo(
+    () =>
+      profitSummary.map(({ storeName, profit, storeColor }, i) => ({
+        name: storeName,
+        profit: Math.round(profit * 100) / 100,
+        fill: storeColor || CHART_COLORS[i % CHART_COLORS.length]
+      })),
+    [profitSummary]
+  );
+
+  /** Chart data for net profit bar chart */
+  const netProfitChartData = useMemo(
+    () =>
+      profitSummary.map(({ storeName, netProfit, storeColor }, i) => ({
+        name: storeName,
+        profit: Math.round(netProfit * 100) / 100,
+        fill: storeColor || CHART_COLORS[i % CHART_COLORS.length]
+      })),
+    [profitSummary]
+  );
+
+  /** Totals across all selected stores (for summary + chart) */
+  const totalSummary = useMemo(() => {
+    const totals = profitSummary.reduce(
+      (acc, s) => ({
+        revenue: acc.revenue + s.revenue,
+        expenses: acc.expenses + s.expenses,
+        grossProfit: acc.grossProfit + s.grossProfit,
+        profit: acc.profit + s.profit,
+        netProfit: acc.netProfit + s.netProfit
+      }),
+      { revenue: 0, expenses: 0, grossProfit: 0, profit: 0, netProfit: 0 }
+    );
+    const marginPct =
+      totals.revenue > 0 ? (totals.grossProfit / totals.revenue) * 100 : 0;
+    return { ...totals, marginPct };
+  }, [profitSummary]);
+
+  /** Chart data: total Revenue, Expenses, Gross profit, Profit, Net profit (all stores) */
+  const totalChartData = useMemo(
+    () => [
+      { name: 'Revenue', value: Math.round(totalSummary.revenue * 100) / 100, fill: '#2196F3' },
+      { name: 'Expenses', value: Math.round(totalSummary.expenses * 100) / 100, fill: '#f44336' },
+      { name: 'Gross profit (margin)', value: Math.round(totalSummary.grossProfit * 100) / 100, fill: '#9C27B0' },
+      { name: 'Profit', value: Math.round(totalSummary.profit * 100) / 100, fill: '#FF9800' },
+      { name: 'Net profit', value: Math.round(totalSummary.netProfit * 100) / 100, fill: '#43a047' }
+    ],
+    [totalSummary]
+  );
 
   const toggleStore = (storeId) => {
     setSelectedStoreIds((prev) =>
@@ -252,24 +369,163 @@ export default function Analytics() {
         ) : (
           <>
             {analyzeEnabled && (
-              <div className="break-even-summary">
-                <h4 className="break-even-summary-title">Break-even (avg daily vs target)</h4>
-                <div className="break-even-summary-grid">
-                  {breakEvenSummary.map(({ storeName, breakEven, avgDaily, isAbove }) => (
-                    <div
-                      key={storeName}
-                      className={`break-even-summary-item ${isAbove ? 'above' : 'below'}`}
-                      title={`Break-even: ₱${breakEven.toFixed(2)}/day · Avg in range: ₱${avgDaily.toFixed(2)}/day`}
-                    >
-                      <span className="break-even-store-name">{storeName}</span>
-                      <span className="break-even-status">{isAbove ? 'Above' : 'Below'}</span>
-                      <span className="break-even-detail">
-                        ₱{avgDaily.toFixed(0)} vs ₱{breakEven.toFixed(0)}/day
-                      </span>
+              <>
+                <div className="profit-summary total-summary">
+                  <h4 className="profit-summary-title">Total (all selected stores)</h4>
+                  <div className="total-summary-stats">
+                    <div className="total-summary-stat" title="Total sales in period">
+                      <span className="total-summary-label">Revenue</span>
+                      <span className="total-summary-value">₱{totalSummary.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                     </div>
-                  ))}
+                    <div className="total-summary-stat" title="Prorated fixed + labor">
+                      <span className="total-summary-label">Expenses</span>
+                      <span className="total-summary-value">₱{totalSummary.expenses.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="total-summary-stat" title="Margin = Gross profit / Revenue">
+                      <span className="total-summary-label">Margin</span>
+                      <span className="total-summary-value">{totalSummary.marginPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="total-summary-stat" title="Revenue − Expenses">
+                      <span className="total-summary-label">Profit</span>
+                      <span className="total-summary-value">₱{totalSummary.profit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <div className="total-summary-stat" title="Gross profit − Expenses">
+                      <span className="total-summary-label">Net profit</span>
+                      <span className="total-summary-value">₱{totalSummary.netProfit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+                <div className="profit-chart-wrap">
+                  <h4 className="profit-chart-title">Total: Revenue, Expenses, Margin, Profit & Net profit</h4>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                      data={totalChartData}
+                      margin={{ top: 5, right: 20, left: 0, bottom: 60 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${v}`} />
+                      <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        formatter={(value) => [`₱${Number(value).toFixed(2)}`, 'Amount']}
+                        labelStyle={{ fontWeight: 600 }}
+                        contentStyle={{ fontSize: 13 }}
+                      />
+                      <Bar dataKey="value" name="Amount" radius={[0, 4, 4, 0]}>
+                        {totalChartData.map((entry, index) => (
+                          <Cell key={index} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <hr className="analytics-section-separator" />
+                <div className="break-even-summary">
+                  <h4 className="break-even-summary-title">Break-even (avg daily vs target)</h4>
+                  <div className="break-even-summary-grid">
+                    {breakEvenSummary.map(({ storeName, breakEven, avgDaily, isAbove }) => (
+                      <div
+                        key={storeName}
+                        className={`break-even-summary-item ${isAbove ? 'above' : 'below'}`}
+                        title={`Break-even: ₱${breakEven.toFixed(2)}/day · Avg in range: ₱${avgDaily.toFixed(2)}/day`}
+                      >
+                        <span className="break-even-store-name">{storeName}</span>
+                        <span className="break-even-status">{isAbove ? 'Above' : 'Below'}</span>
+                        <span className="break-even-detail">
+                          ₱{avgDaily.toFixed(0)} vs ₱{breakEven.toFixed(0)}/day
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <hr className="analytics-section-separator" />
+                <div className="profit-summary">
+                  <h4 className="profit-summary-title">Net profit (Gross profit − Expenses)</h4>
+                  <div className="profit-summary-grid">
+                    {profitSummary.map(({ storeName, grossProfit, expenses, netProfit, netProfitTooltip }) => (
+                      <div
+                        key={storeName}
+                        className={`profit-summary-item ${netProfit >= 0 ? 'positive' : 'negative'}`}
+                        title={netProfitTooltip}
+                      >
+                        <span className="profit-store-name">{storeName}</span>
+                        <span className="profit-value">₱{netProfit.toFixed(2)}</span>
+                        <span className="profit-detail">
+                          Gross ₱{grossProfit.toFixed(0)} − Expenses ₱{expenses.toFixed(0)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="profit-chart-wrap">
+                  <h4 className="profit-chart-title">Net profit by store</h4>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                      data={netProfitChartData}
+                      margin={{ top: 5, right: 20, left: 0, bottom: 60 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${v}`} />
+                      <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        formatter={(value) => [`₱${Number(value).toFixed(2)}`, 'Net profit']}
+                        labelStyle={{ fontWeight: 600 }}
+                        contentStyle={{ fontSize: 13 }}
+                      />
+                      <Bar dataKey="profit" name="Net profit" radius={[0, 4, 4, 0]}>
+                        {netProfitChartData.map((entry, index) => (
+                          <Cell key={index} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <hr className="analytics-section-separator" />
+                <div className="profit-summary">
+                  <h4 className="profit-summary-title">Profit (Revenue − Expenses)</h4>
+                  <div className="profit-summary-grid">
+                    {profitSummary.map(({ storeName, revenue, expenses, profit, profitTooltip }) => (
+                      <div
+                        key={storeName}
+                        className={`profit-summary-item ${profit >= 0 ? 'positive' : 'negative'}`}
+                        title={profitTooltip}
+                      >
+                        <span className="profit-store-name">{storeName}</span>
+                        <span className="profit-value">₱{profit.toFixed(2)}</span>
+                        <span className="profit-detail">
+                          Revenue ₱{revenue.toFixed(0)} − Expenses ₱{expenses.toFixed(0)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="profit-chart-wrap">
+                  <h4 className="profit-chart-title">Profit by store (Revenue − Expenses)</h4>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                      data={profitChartData}
+                      margin={{ top: 5, right: 20, left: 0, bottom: 60 }}
+                      layout="vertical"
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 12 }} tickFormatter={(v) => `₱${v}`} />
+                      <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        formatter={(value) => [`₱${Number(value).toFixed(2)}`, 'Profit']}
+                        labelStyle={{ fontWeight: 600 }}
+                        contentStyle={{ fontSize: 13 }}
+                      />
+                      <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}>
+                        {profitChartData.map((entry, index) => (
+                          <Cell key={index} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <hr className="analytics-section-separator" />
+              </>
             )}
             <ResponsiveContainer width="100%" height={400}>
               {chartType === 'line' ? (
