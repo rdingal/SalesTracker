@@ -68,6 +68,21 @@ export default function Analytics() {
     setSectionsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  /** Formatted date range for section headers (e.g. "Dec 1 – 14, 2024") */
+  const dateRangeLabel = useMemo(() => {
+    const from = new Date(dateFrom + 'T12:00:00');
+    const to = new Date(dateTo + 'T12:00:00');
+    const sameYear = from.getFullYear() === to.getFullYear();
+    const sameMonth = sameYear && from.getMonth() === to.getMonth();
+    if (sameMonth) {
+      return `${from.toLocaleDateString('en-PH', { month: 'short' })} ${from.getDate()} – ${to.getDate()}, ${to.getFullYear()}`;
+    }
+    if (sameYear) {
+      return `${from.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} – ${to.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    return `${from.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })} – ${to.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }, [dateFrom, dateTo]);
+
   const loadData = () => {
     setLoading(true);
     setError(null);
@@ -389,7 +404,7 @@ export default function Analytics() {
                     aria-expanded={sectionsOpen.total}
                   >
                     <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.total ? '▼' : '▶'}</span>
-                    <span>Total (all selected stores)</span>
+                    <span>Total (all selected stores) <span className="analytics-section-daterange">{dateRangeLabel}</span></span>
                   </button>
                   {sectionsOpen.total && (
                     <div className="analytics-section-body">
@@ -457,7 +472,7 @@ export default function Analytics() {
                     aria-expanded={sectionsOpen.breakEven}
                   >
                     <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.breakEven ? '▼' : '▶'}</span>
-                    <span>Break-even (avg daily vs target)</span>
+                    <span>Break-even (avg daily vs target) <span className="analytics-section-daterange">{dateRangeLabel}</span></span>
                   </button>
                   {sectionsOpen.breakEven && (
                     <div className="analytics-section-body">
@@ -491,7 +506,7 @@ export default function Analytics() {
                     aria-expanded={sectionsOpen.netProfit}
                   >
                     <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.netProfit ? '▼' : '▶'}</span>
-                    <span>Net profit (Gross profit − Expenses)</span>
+                    <span>Net profit (Gross profit − Expenses) <span className="analytics-section-daterange">{dateRangeLabel}</span></span>
                   </button>
                   {sectionsOpen.netProfit && (
                     <div className="analytics-section-body">
@@ -549,7 +564,7 @@ export default function Analytics() {
                     aria-expanded={sectionsOpen.profit}
                   >
                     <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.profit ? '▼' : '▶'}</span>
-                    <span>Profit (Revenue − Expenses)</span>
+                    <span>Profit (Revenue − Expenses) <span className="analytics-section-daterange">{dateRangeLabel}</span></span>
                   </button>
                   {sectionsOpen.profit && (
                     <div className="analytics-section-body">
@@ -609,7 +624,7 @@ export default function Analytics() {
                 aria-expanded={sectionsOpen.sales}
               >
                 <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.sales ? '▼' : '▶'}</span>
-                <span>Sales over time</span>
+                <span>Sales over time <span className="analytics-section-daterange">{dateRangeLabel}</span></span>
               </button>
               {sectionsOpen.sales && (
                 <div className="analytics-section-body">
