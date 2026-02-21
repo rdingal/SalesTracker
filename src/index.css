@@ -270,6 +270,30 @@ body {
   border-color: #42a5f5 !important;
 }
 
+/* Darken number input spinner in dark mode: dark block with clear up/down arrows */
+[data-theme="dark"] .deduction-input::-webkit-inner-spin-button,
+[data-theme="dark"] .deduction-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-card-alt) !important;
+  /* Two separate triangles: up (top) and down (bottom) so no diamond */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath fill='%23b0b0b0' d='M5 2L2 6h6L5 2z'/%3E%3Cpath fill='%23b0b0b0' d='M5 12l3-4H2l3 4z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 10px 14px !important;
+  border-left: 1px solid var(--border);
+  margin: 0;
+  width: 22px;
+  opacity: 1;
+}
+
+[data-theme="dark"] .deduction-input:hover::-webkit-inner-spin-button,
+[data-theme="dark"] .deduction-input:hover::-webkit-outer-spin-button,
+[data-theme="dark"] .deduction-input:focus::-webkit-inner-spin-button,
+[data-theme="dark"] .deduction-input:focus::-webkit-outer-spin-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath fill='%23e0e0e0' d='M5 2L2 6h6L5 2z'/%3E%3Cpath fill='%23e0e0e0' d='M5 12l3-4H2l3 4z'/%3E%3C/svg%3E") !important;
+}
+
 [data-theme="dark"] .attendance-table .col-deductions,
 [data-theme="dark"] .attendance-table thead .col-deductions {
   background: var(--bg-card) !important;
