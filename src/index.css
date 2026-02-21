@@ -52,22 +52,22 @@
 
 [data-theme="dark"] .attendance-table .col-net,
 [data-theme="dark"] .attendance-table td.col-net {
-  background: rgba(76, 175, 80, 0.5) !important;
-  color: #e8f5e9 !important;
-  border-left-color: #66bb6a !important;
-  border-right-color: #2e7d32 !important;
+  background: rgba(46, 125, 50, 0.4) !important;
+  color: #a5d6a7 !important;
+  border-left-color: #2e7d32 !important;
+  border-right-color: #1b5e20 !important;
 }
 
 [data-theme="dark"] .attendance-table tbody tr.row-paid td.col-net {
-  background: rgba(76, 175, 80, 0.55) !important;
-  color: #e8f5e9 !important;
+  background: rgba(46, 125, 50, 0.45) !important;
+  color: #a5d6a7 !important;
 }
 
 [data-theme="dark"] .attendance-table thead .col-net {
-  background: rgba(76, 175, 80, 0.6) !important;
-  color: #e8f5e9 !important;
-  border-left-color: #66bb6a !important;
-  border-right-color: #2e7d32 !important;
+  background: rgba(46, 125, 50, 0.5) !important;
+  color: #a5d6a7 !important;
+  border-left-color: #2e7d32 !important;
+  border-right-color: #1b5e20 !important;
 }
 
 .today-label {
@@ -80,7 +80,7 @@
 }
 
 [data-theme="dark"] .today-label {
-  color: #64b5f6;
+  color: #5c9bd6;
 }
 
 :root {
@@ -210,6 +210,78 @@ body {
 [data-theme="dark"] .attendance-calendar,
 [data-theme="dark"] .stores-calendar {
   border-color: var(--border) !important;
+}
+
+/* Attendance table: dark mode – body cells, day cells, inputs, paid rows */
+[data-theme="dark"] .attendance-table tbody td {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .attendance-table .col-total,
+[data-theme="dark"] .attendance-table thead .col-total {
+  background: var(--bg-card-alt) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .attendance-table tbody tr.row-paid,
+[data-theme="dark"] .attendance-table tbody tr.row-paid td,
+[data-theme="dark"] .attendance-table tbody tr.row-paid .col-employee {
+  background: rgba(33, 150, 243, 0.15) !important;
+}
+
+[data-theme="dark"] .attendance-table thead th .day-name,
+[data-theme="dark"] .attendance-table thead th .day-date {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .attendance-table thead th .day-date {
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .attendance-cell {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: transparent !important;
+}
+
+[data-theme="dark"] .attendance-cell:hover {
+  background: var(--border) !important;
+  border-color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .attendance-cell.present {
+  background: rgba(33, 150, 243, 0.5) !important;
+  border-color: #1976D2 !important;
+  color: #90caf9 !important;
+}
+
+[data-theme="dark"] .attendance-cell.present:hover {
+  background: rgba(33, 150, 243, 0.65) !important;
+}
+
+[data-theme="dark"] .deduction-input {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .deduction-input:focus {
+  border-color: #42a5f5 !important;
+}
+
+[data-theme="dark"] .attendance-table .col-deductions,
+[data-theme="dark"] .attendance-table thead .col-deductions {
+  background: var(--bg-card) !important;
+}
+
+[data-theme="dark"] .total-cell {
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .paid-checkbox-label input[type="checkbox"] {
+  accent-color: #42a5f5;
+  filter: brightness(0.9);
 }
 
 @media (max-width: 600px) {

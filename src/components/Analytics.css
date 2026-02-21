@@ -211,6 +211,36 @@
   color: #b71c1c;
 }
 
+/* Dark theme: break-even section */
+[data-theme="dark"] .break-even-summary {
+  background: #16213e;
+  border-color: #2a2a4a;
+}
+
+[data-theme="dark"] .break-even-summary-title {
+  color: #b0b0b0;
+}
+
+[data-theme="dark"] .break-even-summary-item.above {
+  background: rgba(46, 125, 50, 0.35);
+  color: #a5d6a7;
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+[data-theme="dark"] .break-even-summary-item.above .break-even-detail {
+  color: #81c784;
+}
+
+[data-theme="dark"] .break-even-summary-item.below {
+  background: rgba(198, 40, 40, 0.35);
+  color: #ef9a9a;
+  border-color: rgba(244, 67, 54, 0.5);
+}
+
+[data-theme="dark"] .break-even-summary-item.below .break-even-detail {
+  color: #e57373;
+}
+
 .chart-container {
   min-height: 400px;
   padding: 16px 0;
