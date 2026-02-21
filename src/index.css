@@ -264,6 +264,20 @@ body {
   color: #e57373 !important;
 }
 
+[data-theme="dark"] .stores-table .sale-input {
+  -moz-appearance: textfield;
+}
+
+[data-theme="dark"] .stores-table .sale-input::-webkit-inner-spin-button,
+[data-theme="dark"] .stores-table .sale-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
 [data-theme="dark"] .attendance-table tbody tr.row-paid,
 [data-theme="dark"] .attendance-table tbody tr.row-paid td,
 [data-theme="dark"] .attendance-table tbody tr.row-paid .col-employee {

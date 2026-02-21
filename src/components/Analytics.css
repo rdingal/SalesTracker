@@ -206,6 +206,50 @@
   border-color: #2196F3;
 }
 
+[data-theme="dark"] .date-range input[type="date"] {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .date-sep {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .chart-type-toggle button {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .chart-type-toggle button:hover {
+  background: var(--border) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .chart-type-toggle button.active {
+  background: #2196F3 !important;
+  color: #fff !important;
+  border-color: #2196F3 !important;
+}
+
+[data-theme="dark"] .analyze-toggle {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .analyze-toggle:hover {
+  background: var(--border) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .analyze-toggle.active {
+  background: #2196F3 !important;
+  color: #fff !important;
+  border-color: #2196F3 !important;
+}
+
 .break-even-summary {
   margin-bottom: 16px;
   padding: 12px 16px;
