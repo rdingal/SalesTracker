@@ -212,6 +212,17 @@ body {
   border-color: var(--border) !important;
 }
 
+[data-theme="dark"] .btn-nav {
+  background: var(--bg-card-alt) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .btn-nav:hover {
+  background: var(--border) !important;
+  color: #fff !important;
+}
+
 /* Attendance table: dark mode – body cells, day cells, inputs, paid rows */
 [data-theme="dark"] .attendance-table tbody td {
   background: var(--bg-card) !important;
@@ -222,6 +233,35 @@ body {
 [data-theme="dark"] .attendance-table thead .col-total {
   background: var(--bg-card-alt) !important;
   color: var(--text) !important;
+}
+
+[data-theme="dark"] .stores-table .col-total,
+[data-theme="dark"] .stores-table thead .col-total {
+  background: var(--bg-card-alt) !important;
+  color: #fff !important;
+}
+
+[data-theme="dark"] .stores-table td.col-total.total-cell {
+  color: #fff !important;
+  font-weight: 700;
+}
+
+[data-theme="dark"] .stores-table .sale-input {
+  background: #0d1f33 !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="dark"] .stores-table .sale-input:focus {
+  border-color: #42a5f5 !important;
+}
+
+[data-theme="dark"] .stores-table td.sale-at-or-above-breakeven .sale-input {
+  color: #81c784 !important;
+}
+
+[data-theme="dark"] .stores-table td.sale-below-breakeven .sale-input {
+  color: #e57373 !important;
 }
 
 [data-theme="dark"] .attendance-table tbody tr.row-paid,
