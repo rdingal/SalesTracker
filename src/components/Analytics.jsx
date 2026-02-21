@@ -40,6 +40,27 @@ function getDaysBetween(start, end) {
 
 const CHART_COLORS = ['#2196F3', '#43a047', '#FF9800', '#9C27B0', '#f44336', '#00BCD4'];
 
+const ANALYTICS_DATE_RANGE_KEY = 'salesTracker_analytics_dateRange';
+
+/** Module-level cache: key = `${dateFrom}_${dateTo}`, value = { stores, sales, employees, attendance } */
+const analyticsDataCache = {};
+
+function getInitialDateRange() {
+  try {
+    const raw = localStorage.getItem(ANALYTICS_DATE_RANGE_KEY);
+    if (raw) {
+      const { dateFrom, dateTo } = JSON.parse(raw);
+      if (dateFrom && dateTo && /^\d{4}-\d{2}-\d{2}$/.test(dateFrom) && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+        return { dateFrom, dateTo };
+      }
+    }
+  } catch (_) {}
+  const d = new Date();
+  const to = getDateStr(d);
+  d.setDate(d.getDate() - 13);
+  return { dateFrom: getDateStr(d), dateTo: to };
+}
+
 export default function Analytics() {
   const [stores, setStores] = useState([]);
   const [sales, setSales] = useState([]);
@@ -47,12 +68,8 @@ export default function Analytics() {
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 13);
-    return getDateStr(d);
-  });
-  const [dateTo, setDateTo] = useState(() => getDateStr(new Date()));
+  const [dateFrom, setDateFrom] = useState(() => getInitialDateRange().dateFrom);
+  const [dateTo, setDateTo] = useState(() => getInitialDateRange().dateTo);
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
   const [chartType, setChartType] = useState('line');
   const [analyzeEnabled, setAnalyzeEnabled] = useState(false);
@@ -84,6 +101,21 @@ export default function Analytics() {
   }, [dateFrom, dateTo]);
 
   const loadData = () => {
+    const cacheKey = `${dateFrom}_${dateTo}`;
+    const cached = analyticsDataCache[cacheKey];
+    if (cached) {
+      setStores(cached.stores);
+      setSales(cached.sales);
+      setEmployees(cached.employees);
+      setAttendance(cached.attendance);
+      setSelectedStoreIds((prev) => {
+        const valid = prev.filter((id) => cached.stores.some((st) => st.id === id));
+        return valid.length ? valid : cached.stores.map((st) => st.id);
+      });
+      setError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     Promise.all([
@@ -93,6 +125,7 @@ export default function Analytics() {
       getAttendanceForWeek(dateFrom, dateTo)
     ])
       .then(([s, salesData, emps, att]) => {
+        analyticsDataCache[cacheKey] = { stores: s, sales: salesData, employees: emps, attendance: att };
         setStores(s);
         setSales(salesData);
         setEmployees(emps || []);
@@ -105,6 +138,10 @@ export default function Analytics() {
       .catch((err) => setError(err?.message || 'Failed to load data'))
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    localStorage.setItem(ANALYTICS_DATE_RANGE_KEY, JSON.stringify({ dateFrom, dateTo }));
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     loadData();
