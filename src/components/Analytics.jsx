@@ -56,6 +56,17 @@ export default function Analytics() {
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
   const [chartType, setChartType] = useState('line');
   const [analyzeEnabled, setAnalyzeEnabled] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState({
+    total: true,
+    breakEven: true,
+    netProfit: true,
+    profit: true,
+    sales: true
+  });
+
+  const toggleSection = (key) => {
+    setSectionsOpen((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   const loadData = () => {
     setLoading(true);
@@ -370,6 +381,18 @@ export default function Analytics() {
           <>
             {analyzeEnabled && (
               <>
+                <div className="analytics-collapsible-section">
+                  <button
+                    type="button"
+                    className="analytics-section-header"
+                    onClick={() => toggleSection('total')}
+                    aria-expanded={sectionsOpen.total}
+                  >
+                    <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.total ? '▼' : '▶'}</span>
+                    <span>Total (all selected stores)</span>
+                  </button>
+                  {sectionsOpen.total && (
+                    <div className="analytics-section-body">
                 <div className="profit-summary total-summary">
                   <h4 className="profit-summary-title">Total (all selected stores)</h4>
                   <div className="total-summary-stats">
@@ -389,7 +412,10 @@ export default function Analytics() {
                       <span className="total-summary-label">Profit</span>
                       <span className="total-summary-value">₱{totalSummary.profit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                     </div>
-                    <div className="total-summary-stat" title="Gross profit − Expenses">
+                    <div
+                      className={`total-summary-stat total-summary-stat--highlight ${totalSummary.netProfit >= 0 ? 'total-summary-stat--positive' : 'total-summary-stat--negative'}`}
+                      title="Gross profit − Expenses"
+                    >
                       <span className="total-summary-label">Net profit</span>
                       <span className="total-summary-value">₱{totalSummary.netProfit.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
                     </div>
@@ -419,7 +445,22 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                    </div>
+                  )}
+                </div>
                 <hr className="analytics-section-separator" />
+                <div className="analytics-collapsible-section">
+                  <button
+                    type="button"
+                    className="analytics-section-header"
+                    onClick={() => toggleSection('breakEven')}
+                    aria-expanded={sectionsOpen.breakEven}
+                  >
+                    <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.breakEven ? '▼' : '▶'}</span>
+                    <span>Break-even (avg daily vs target)</span>
+                  </button>
+                  {sectionsOpen.breakEven && (
+                    <div className="analytics-section-body">
                 <div className="break-even-summary">
                   <h4 className="break-even-summary-title">Break-even (avg daily vs target)</h4>
                   <div className="break-even-summary-grid">
@@ -430,15 +471,30 @@ export default function Analytics() {
                         title={`Break-even: ₱${breakEven.toFixed(2)}/day · Avg in range: ₱${avgDaily.toFixed(2)}/day`}
                       >
                         <span className="break-even-store-name">{storeName}</span>
-                        <span className="break-even-status">{isAbove ? 'Above' : 'Below'}</span>
+                        <span className="break-even-value">₱{avgDaily.toFixed(2)}/day</span>
                         <span className="break-even-detail">
-                          ₱{avgDaily.toFixed(0)} vs ₱{breakEven.toFixed(0)}/day
+                          Target ₱{breakEven.toFixed(0)}/day · {isAbove ? 'Above' : 'Below'}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
+                    </div>
+                  )}
+                </div>
                 <hr className="analytics-section-separator" />
+                <div className="analytics-collapsible-section">
+                  <button
+                    type="button"
+                    className="analytics-section-header"
+                    onClick={() => toggleSection('netProfit')}
+                    aria-expanded={sectionsOpen.netProfit}
+                  >
+                    <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.netProfit ? '▼' : '▶'}</span>
+                    <span>Net profit (Gross profit − Expenses)</span>
+                  </button>
+                  {sectionsOpen.netProfit && (
+                    <div className="analytics-section-body">
                 <div className="profit-summary">
                   <h4 className="profit-summary-title">Net profit (Gross profit − Expenses)</h4>
                   <div className="profit-summary-grid">
@@ -481,7 +537,22 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                    </div>
+                  )}
+                </div>
                 <hr className="analytics-section-separator" />
+                <div className="analytics-collapsible-section">
+                  <button
+                    type="button"
+                    className="analytics-section-header"
+                    onClick={() => toggleSection('profit')}
+                    aria-expanded={sectionsOpen.profit}
+                  >
+                    <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.profit ? '▼' : '▶'}</span>
+                    <span>Profit (Revenue − Expenses)</span>
+                  </button>
+                  {sectionsOpen.profit && (
+                    <div className="analytics-section-body">
                 <div className="profit-summary">
                   <h4 className="profit-summary-title">Profit (Revenue − Expenses)</h4>
                   <div className="profit-summary-grid">
@@ -524,9 +595,24 @@ export default function Analytics() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                    </div>
+                  )}
+                </div>
                 <hr className="analytics-section-separator" />
               </>
             )}
+            <div className="analytics-collapsible-section">
+              <button
+                type="button"
+                className="analytics-section-header"
+                onClick={() => toggleSection('sales')}
+                aria-expanded={sectionsOpen.sales}
+              >
+                <span className="analytics-section-chevron" aria-hidden>{sectionsOpen.sales ? '▼' : '▶'}</span>
+                <span>Sales over time</span>
+              </button>
+              {sectionsOpen.sales && (
+                <div className="analytics-section-body">
             <ResponsiveContainer width="100%" height={400}>
               {chartType === 'line' ? (
                 <LineChart
@@ -604,6 +690,9 @@ export default function Analytics() {
                 </BarChart>
               )}
             </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
