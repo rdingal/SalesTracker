@@ -189,11 +189,12 @@ export default function StoresManager() {
     }
   };
 
-  const handleDeleteStore = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this store? Its sales data, expenses, and employee links will be removed. This cannot be undone.')) return;
+  const handleDeleteStore = async (store) => {
+    const name = store?.name ? ` "${store.name}"` : '';
+    if (!window.confirm(`Are you sure you want to delete store${name}? Its sales data, expenses, and employee links will be removed. This cannot be undone.`)) return;
     setError(null);
     try {
-      await deleteStore(id);
+      await deleteStore(store.id);
       loadData();
     } catch (err) {
       setError(err?.message || 'Failed to delete store');
@@ -669,7 +670,7 @@ export default function StoresManager() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteStore(store.id)}
+                      onClick={() => handleDeleteStore(store)}
                       className="btn-small btn-danger"
                       disabled={!canEdit || !isSuperAdmin}
                       title={!isSuperAdmin ? 'Only super admin can delete stores' : 'Delete store'}

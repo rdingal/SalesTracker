@@ -133,11 +133,12 @@ export default function AttendanceManager() {
     }
   };
 
-  const handleDeleteEmployee = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this employee? Their attendance, payments, and deductions will be removed. This cannot be undone.')) return;
+  const handleDeleteEmployee = async (employee) => {
+    const name = employee?.name ? ` "${employee.name}"` : '';
+    if (!window.confirm(`Are you sure you want to delete employee${name}? Their attendance, payments, and deductions will be removed. This cannot be undone.`)) return;
     setError(null);
     try {
-      await deleteEmployee(id);
+      await deleteEmployee(employee.id);
       loadData();
     } catch (err) {
       setError(err?.message || 'Failed to delete employee');
@@ -499,7 +500,7 @@ export default function AttendanceManager() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteEmployee(emp.id)}
+                      onClick={() => handleDeleteEmployee(emp)}
                       className="btn-small btn-danger"
                       disabled={!canEdit || !isSuperAdmin}
                       title={!isSuperAdmin ? 'Only super admin can delete employees' : 'Delete employee'}
