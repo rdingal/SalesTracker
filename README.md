@@ -79,6 +79,23 @@ When Supabase is configured, the app requires sign-in before showing the main da
 3. **Optional: Row Level Security (RLS)**  
    To restrict data per user, enable RLS on your tables and add policies that use `auth.uid()`. The app already sends the session with every request via the Supabase client.
 
+### Access levels (roles)
+
+You can give users different roles so that only **super admins** can delete employees or stores; **admins** can edit everything else but not delete.
+
+- **admin** (default): Can add and edit inventory, sales, attendance, employees, stores, and analytics. Cannot delete employees or stores.
+- **super_admin**: Same as admin, plus can delete employees and delete stores.
+
+**How to set a user’s role**
+
+1. In Supabase dashboard go to **Authentication** → **Users**.
+2. Open the user (or create one).
+3. Under **User Metadata**, add a key `role` with value `admin` or `super_admin`.  
+   Example: `{"role": "super_admin"}`.  
+   If you leave metadata empty or omit `role`, the app treats the user as **admin**.
+
+Roles are read from `user_metadata.role`; only the value `super_admin` is special (delete buttons are enabled). Any other value (e.g. `admin`) disables delete employees/stores.
+
 ## Project Structure
 
 ```

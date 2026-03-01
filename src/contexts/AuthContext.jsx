@@ -51,6 +51,10 @@ export function AuthProvider({ children }) {
 
   const canEdit = !supabase || !!user;
 
+  /** Role from Supabase user_metadata.role: 'super_admin' | 'admin' | undefined (treated as admin) */
+  const userRole = user?.user_metadata?.role ?? 'admin';
+  const isSuperAdmin = userRole === 'super_admin';
+
   const value = {
     user,
     session,
@@ -59,7 +63,9 @@ export function AuthProvider({ children }) {
     signUp,
     signOut,
     hasSupabase: !!supabase,
-    canEdit
+    canEdit,
+    userRole,
+    isSuperAdmin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

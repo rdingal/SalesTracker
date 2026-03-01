@@ -39,7 +39,7 @@ function toDateStr(date) {
 }
 
 export default function AttendanceManager() {
-  const { canEdit } = useAuth();
+  const { canEdit, isSuperAdmin } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [weeklyPayments, setWeeklyPayments] = useState([]);
@@ -501,7 +501,8 @@ export default function AttendanceManager() {
                       type="button"
                       onClick={() => handleDeleteEmployee(emp.id)}
                       className="btn-small btn-danger"
-                      disabled={!canEdit}
+                      disabled={!canEdit || !isSuperAdmin}
+                      title={!isSuperAdmin ? 'Only super admin can delete employees' : 'Delete employee'}
                     >
                       Delete
                     </button>

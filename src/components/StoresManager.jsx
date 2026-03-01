@@ -51,7 +51,7 @@ function getMonthBounds(date) {
 }
 
 export default function StoresManager() {
-  const { canEdit } = useAuth();
+  const { canEdit, isSuperAdmin } = useAuth();
   const [stores, setStores] = useState([]);
   const [storeSales, setStoreSales] = useState([]);
   const [weekStart, setWeekStart] = useState(() => {
@@ -671,7 +671,8 @@ export default function StoresManager() {
                       type="button"
                       onClick={() => handleDeleteStore(store.id)}
                       className="btn-small btn-danger"
-                      disabled={!canEdit}
+                      disabled={!canEdit || !isSuperAdmin}
+                      title={!isSuperAdmin ? 'Only super admin can delete stores' : 'Delete store'}
                     >
                       Delete
                     </button>
