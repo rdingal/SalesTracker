@@ -57,14 +57,19 @@ function App() {
             </button>
           )}
           {user && (
-            <button
-              type="button"
-              className="header-btn"
-              onClick={signOut}
-              title="Sign out"
-            >
-              Sign out
-            </button>
+            <>
+              <span className="header-email" title={user.email}>
+                {user.email}
+              </span>
+              <button
+                type="button"
+                className="header-btn"
+                onClick={signOut}
+                title="Sign out"
+              >
+                Sign out
+              </button>
+            </>
           )}
           <button
             type="button"
