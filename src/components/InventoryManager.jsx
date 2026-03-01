@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { getInventory, saveInventoryItem, deleteInventoryItem } from '../services/database';
 import './InventoryManager.css';
 
 export default function InventoryManager() {
+  const { canEdit } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +76,7 @@ export default function InventoryManager() {
     <div className="inventory-manager">
       <div className="inventory-header">
         <h2>Inventory Management</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary" disabled={!canEdit} type="button">
           {showForm ? 'Cancel' : '+ Add Item'}
         </button>
       </div>
@@ -94,6 +96,7 @@ export default function InventoryManager() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                disabled={!canEdit}
               />
             </div>
             <div className="form-group">
@@ -104,6 +107,7 @@ export default function InventoryManager() {
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 required
+                disabled={!canEdit}
               />
             </div>
             <div className="form-group">
@@ -113,6 +117,7 @@ export default function InventoryManager() {
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 required
+                disabled={!canEdit}
               />
             </div>
           </div>
@@ -122,9 +127,10 @@ export default function InventoryManager() {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows="3"
+              disabled={!canEdit}
             />
           </div>
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary" disabled={!canEdit}>
             {formData.id ? 'Update Item' : 'Add Item'}
           </button>
         </form>
@@ -152,10 +158,10 @@ export default function InventoryManager() {
                   <td>₱{item.price.toFixed(2)}</td>
                   <td>{item.quantity}</td>
                   <td>
-                    <button onClick={() => handleEdit(item)} className="btn-small">
+                    <button onClick={() => handleEdit(item)} className="btn-small" disabled={!canEdit} type="button">
                       Edit
                     </button>
-                    <button onClick={() => handleDelete(item.id)} className="btn-small btn-danger">
+                    <button onClick={() => handleDelete(item.id)} className="btn-small btn-danger" disabled={!canEdit} type="button">
                       Delete
                     </button>
                   </td>

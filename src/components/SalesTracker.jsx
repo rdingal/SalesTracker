@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { getInventory, getSales, recordSale } from '../services/database';
 import './SalesTracker.css';
 
 export default function SalesTracker() {
+  const { canEdit } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function SalesTracker() {
     <div className="sales-tracker">
       <div className="sales-header">
         <h2>Sales Tracking</h2>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary" disabled={!canEdit} type="button">
           {showForm ? 'Cancel' : '+ Record Sale'}
         </button>
       </div>
@@ -108,6 +110,7 @@ export default function SalesTracker() {
                 value={formData.itemId}
                 onChange={(e) => setFormData({ ...formData, itemId: e.target.value })}
                 required
+                disabled={!canEdit}
               >
                 <option value="">-- Select an item --</option>
                 {inventory.filter(item => item.quantity > 0).map(item => (
@@ -125,6 +128,7 @@ export default function SalesTracker() {
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
                 required
+                disabled={!canEdit}
               />
             </div>
             <div className="form-group">
@@ -133,10 +137,11 @@ export default function SalesTracker() {
                 type="text"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                disabled={!canEdit}
               />
             </div>
           </div>
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary" disabled={!canEdit}>
             Record Sale
           </button>
         </form>

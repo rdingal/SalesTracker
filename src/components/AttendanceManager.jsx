@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   getEmployees,
   saveEmployee,
@@ -38,6 +39,7 @@ function toDateStr(date) {
 }
 
 export default function AttendanceManager() {
+  const { canEdit } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [weeklyPayments, setWeeklyPayments] = useState([]);
@@ -132,7 +134,7 @@ export default function AttendanceManager() {
   };
 
   const handleDeleteEmployee = async (id) => {
-    if (!window.confirm('Delete this employee? Their attendance records will be removed.')) return;
+    if (!window.confirm('Are you sure you want to delete this employee? Their attendance, payments, and deductions will be removed. This cannot be undone.')) return;
     setError(null);
     try {
       await deleteEmployee(id);
@@ -342,8 +344,8 @@ export default function AttendanceManager() {
                 {employees.map((emp) => (
                   <tr
                     key={emp.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, emp.id)}
+                    draggable={canEdit}
+                    onDragStart={(e) => canEdit && handleDragStart(e, emp.id)}
                     onDragEnd={handleDragEnd}
                     onDragOver={(e) => handleDragOver(e, emp.id)}
                     onDragLeave={handleDragLeave}
@@ -373,6 +375,7 @@ export default function AttendanceManager() {
                             className={`attendance-cell ${present ? 'present' : ''}`}
                             onClick={() => handleCellClick(emp.id, dateStr)}
                             title={`${present ? 'Present' : 'Absent'} – click to toggle`}
+                            disabled={!canEdit}
                           >
                             {present ? '✓' : ''}
                           </button>
@@ -398,6 +401,7 @@ export default function AttendanceManager() {
                         onBlur={(e) => handleDeductionBlur(emp.id, e.target.value)}
                         placeholder="0"
                         title="Cash advance, deductions (₱)"
+                        disabled={!canEdit}
                       />
                     </td>
                     <td className="col-total total-cell">
@@ -413,6 +417,7 @@ export default function AttendanceManager() {
                           checked={isPaidForWeek(emp.id)}
                           onChange={(e) => handlePaidChange(emp.id, e.target.checked)}
                           title="Mark as paid for this week"
+                          disabled={!canEdit}
                         />
                       </label>
                     </td>
@@ -427,7 +432,7 @@ export default function AttendanceManager() {
       {activeSubTab === 'employees' && (
         <div className="employee-list-section">
           <div className="employee-list-header">
-            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary" disabled={!canEdit} type="button">
               {showForm ? 'Cancel' : '+ Add Employee'}
             </button>
           </div>
@@ -441,6 +446,7 @@ export default function AttendanceManager() {
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Enter name"
                   required
+                  disabled={!canEdit}
                 />
               </div>
               <div className="form-group">
@@ -452,6 +458,7 @@ export default function AttendanceManager() {
                   value={formData.salaryRate}
                   onChange={(e) => setFormData({ ...formData, salaryRate: e.target.value })}
                   placeholder="0"
+                  disabled={!canEdit}
                 />
               </div>
               <div className="form-group">
@@ -460,12 +467,13 @@ export default function AttendanceManager() {
                   value={formData.employeeType}
                   onChange={(e) => setFormData({ ...formData, employeeType: e.target.value })}
                   className="employee-type-select"
+                  disabled={!canEdit}
                 >
                   <option value="main">Main</option>
                   <option value="reliever">Reliever</option>
                 </select>
               </div>
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary" disabled={!canEdit}>
                 {formData.id ? 'Update' : 'Add'} Employee
               </button>
             </form>
@@ -485,6 +493,7 @@ export default function AttendanceManager() {
                       type="button"
                       onClick={() => handleEditEmployee(emp)}
                       className="btn-small"
+                      disabled={!canEdit}
                     >
                       Edit
                     </button>
@@ -492,6 +501,7 @@ export default function AttendanceManager() {
                       type="button"
                       onClick={() => handleDeleteEmployee(emp.id)}
                       className="btn-small btn-danger"
+                      disabled={!canEdit}
                     >
                       Delete
                     </button>

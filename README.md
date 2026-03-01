@@ -65,6 +65,20 @@ The app uses Supabase when env vars are set; otherwise it falls back to localSto
 
 4. Restart the dev server (`npm run dev`). Data will be stored in Supabase. Without these env vars, the app still runs using localStorage.
 
+### Login (Supabase Auth)
+
+When Supabase is configured, the app requires sign-in before showing the main dashboard.
+
+1. **Enable Auth**  
+   In the Supabase dashboard, go to **Authentication** → **Providers**. Email is enabled by default. Optionally enable **Confirm email** if you want users to verify their address before signing in.
+
+2. **Create a user**  
+   - **Option A:** In the app, use “Need an account? Sign up”, enter email and password, then sign in. If “Confirm email” is on, check the inbox and confirm before signing in.  
+   - **Option B:** In Supabase dashboard go to **Authentication** → **Users** → **Add user** and create a user (set a password).
+
+3. **Optional: Row Level Security (RLS)**  
+   To restrict data per user, enable RLS on your tables and add policies that use `auth.uid()`. The app already sends the session with every request via the Supabase client.
+
 ## Project Structure
 
 ```

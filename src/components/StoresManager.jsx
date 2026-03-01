@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   getStores,
   saveStore,
@@ -50,6 +51,7 @@ function getMonthBounds(date) {
 }
 
 export default function StoresManager() {
+  const { canEdit } = useAuth();
   const [stores, setStores] = useState([]);
   const [storeSales, setStoreSales] = useState([]);
   const [weekStart, setWeekStart] = useState(() => {
@@ -188,7 +190,7 @@ export default function StoresManager() {
   };
 
   const handleDeleteStore = async (id) => {
-    if (!window.confirm('Delete this store? Its sales data will be removed.')) return;
+    if (!window.confirm('Are you sure you want to delete this store? Its sales data, expenses, and employee links will be removed. This cannot be undone.')) return;
     setError(null);
     try {
       await deleteStore(id);
@@ -466,6 +468,7 @@ export default function StoresManager() {
                             }
                             placeholder="0"
                             title={`Sales for ${dateStr}`}
+                            disabled={!canEdit}
                           />
                         </td>
                       );
@@ -484,7 +487,7 @@ export default function StoresManager() {
       {activeSubTab === 'stores' && (
         <div className="store-list-section">
           <div className="store-list-header">
-            <button onClick={() => (showForm ? setShowForm(false) : handleAddStore())} className="btn-primary">
+            <button onClick={() => (showForm ? setShowForm(false) : handleAddStore())} className="btn-primary" disabled={!canEdit} type="button">
               {showForm ? 'Cancel' : '+ Add Store'}
             </button>
           </div>
@@ -499,6 +502,7 @@ export default function StoresManager() {
                     onChange={(e) => setExpenseMonth(e.target.value)}
                     className="month-input"
                     title="Employee salaries are calculated from attendance and deductions for this month"
+                    disabled={!canEdit}
                   />
                 </div>
               </div>
@@ -511,6 +515,7 @@ export default function StoresManager() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Enter store name"
                     required
+                    disabled={!canEdit}
                   />
                 </div>
                 <div className="form-group form-group-color">
@@ -520,6 +525,7 @@ export default function StoresManager() {
                     value={formData.color}
                     onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     title="Color for employee names in attendance calendar"
+                    disabled={!canEdit}
                   />
                 </div>
                 <div className="form-group form-group-markup">
@@ -533,6 +539,7 @@ export default function StoresManager() {
                     onChange={(e) => setFormData({ ...formData, markupPercentage: e.target.value })}
                     placeholder="0"
                     title="Fixed markup percentage for break-even calculations"
+                    disabled={!canEdit}
                   />
                 </div>
                 <div className="form-group form-group-margin">
@@ -572,6 +579,7 @@ export default function StoresManager() {
                       value={formData.monthlyRent}
                       onChange={(e) => setFormData({ ...formData, monthlyRent: e.target.value })}
                       placeholder="0"
+                      disabled={!canEdit}
                     />
                   </div>
                   <div className="expense-row">
@@ -583,6 +591,7 @@ export default function StoresManager() {
                       value={formData.monthlyUtilityBills}
                       onChange={(e) => setFormData({ ...formData, monthlyUtilityBills: e.target.value })}
                       placeholder="0"
+                      disabled={!canEdit}
                     />
                   </div>
                   <div className="expense-row expense-row-readonly">
@@ -600,6 +609,7 @@ export default function StoresManager() {
                       value={formData.monthlyOtherExpenses}
                       onChange={(e) => setFormData({ ...formData, monthlyOtherExpenses: e.target.value })}
                       placeholder="0"
+                      disabled={!canEdit}
                     />
                   </div>
                 </div>
@@ -617,6 +627,7 @@ export default function StoresManager() {
                             type="checkbox"
                             checked={formData.linkedEmployeeIds.includes(emp.id)}
                             onChange={() => toggleEmployeeForStore(emp.id)}
+                            disabled={!canEdit}
                           />
                           <span>{emp.name}</span>
                         </label>
@@ -625,7 +636,7 @@ export default function StoresManager() {
                           onChange={(e) => handleEmployeeTypeChange(emp, e.target.value)}
                           className="employee-type-select"
                           title={formData.linkedEmployeeIds.includes(emp.id) ? 'Main or Reliever' : 'Assign employee to store first'}
-                          disabled={!formData.linkedEmployeeIds.includes(emp.id)}
+                          disabled={!canEdit || !formData.linkedEmployeeIds.includes(emp.id)}
                         >
                           <option value="main">Main</option>
                           <option value="reliever">Reliever</option>
@@ -635,7 +646,7 @@ export default function StoresManager() {
                   )}
                 </div>
               </div>
-              <button type="submit" className="btn-primary">
+              <button type="submit" className="btn-primary" disabled={!canEdit}>
                 {formData.id ? 'Update' : 'Add'} Store
               </button>
             </form>
@@ -652,6 +663,7 @@ export default function StoresManager() {
                       type="button"
                       onClick={() => handleEditStore(store)}
                       className="btn-small"
+                      disabled={!canEdit}
                     >
                       Edit
                     </button>
@@ -659,6 +671,7 @@ export default function StoresManager() {
                       type="button"
                       onClick={() => handleDeleteStore(store.id)}
                       className="btn-small btn-danger"
+                      disabled={!canEdit}
                     >
                       Delete
                     </button>

@@ -13,6 +13,7 @@ import {
   ReferenceLine,
   Cell
 } from 'recharts';
+import { useAuth } from '../contexts/AuthContext';
 import { getStores, getStoreSalesForWeek, getEmployees, getAttendanceForWeek } from '../services/database';
 import './Analytics.css';
 
@@ -62,6 +63,7 @@ function getInitialDateRange() {
 }
 
 export default function Analytics() {
+  const { canEdit } = useAuth();
   const [stores, setStores] = useState([]);
   const [sales, setSales] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -350,6 +352,7 @@ export default function Analytics() {
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               max={dateTo}
+              disabled={!canEdit}
             />
             <span className="date-sep">to</span>
             <input
@@ -357,6 +360,7 @@ export default function Analytics() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               min={dateFrom}
+              disabled={!canEdit}
             />
           </div>
         </div>
@@ -364,10 +368,10 @@ export default function Analytics() {
         <div className="control-group">
           <label>Stores to track</label>
           <div className="store-filters">
-            <button type="button" onClick={selectAllStores} className="btn-link">
+            <button type="button" onClick={selectAllStores} className="btn-link" disabled={!canEdit}>
               All
             </button>
-            <button type="button" onClick={clearStores} className="btn-link">
+            <button type="button" onClick={clearStores} className="btn-link" disabled={!canEdit}>
               None
             </button>
             <div className="store-checkboxes">
@@ -377,6 +381,7 @@ export default function Analytics() {
                     type="checkbox"
                     checked={selectedStoreIds.includes(store.id)}
                     onChange={() => toggleStore(store.id)}
+                    disabled={!canEdit}
                   />
                   <span
                     className="store-dot"
@@ -396,6 +401,7 @@ export default function Analytics() {
               type="button"
               className={chartType === 'line' ? 'active' : ''}
               onClick={() => setChartType('line')}
+              disabled={!canEdit}
             >
               Line
             </button>
@@ -403,6 +409,7 @@ export default function Analytics() {
               type="button"
               className={chartType === 'bar' ? 'active' : ''}
               onClick={() => setChartType('bar')}
+              disabled={!canEdit}
             >
               Bar
             </button>
@@ -416,6 +423,7 @@ export default function Analytics() {
             className={`analyze-toggle ${analyzeEnabled ? 'active' : ''}`}
             onClick={() => setAnalyzeEnabled((prev) => !prev)}
             title={analyzeEnabled ? 'Hide break-even analysis' : 'Show break-even summary and reference lines'}
+            disabled={!canEdit}
           >
             {analyzeEnabled ? 'On' : 'Off'}
           </button>
