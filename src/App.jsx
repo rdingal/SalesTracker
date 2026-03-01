@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from './contexts/AuthContext'
-import InventoryManager from './components/InventoryManager'
-import SalesTracker from './components/SalesTracker'
+// import InventoryManager from './components/InventoryManager'
+// import SalesTracker from './components/SalesTracker'
 import AttendanceManager from './components/AttendanceManager'
 import StoresManager from './components/StoresManager'
 import Analytics from './components/Analytics'
@@ -26,6 +26,13 @@ function App() {
   useEffect(() => {
     if (user) setLoginModalOpen(false)
   }, [user])
+
+  // When Inventory and Sales tabs are commented out, redirect to attendance if those were active
+  useEffect(() => {
+    if (activeTab === 'inventory' || activeTab === 'sales') {
+      setActiveTab('attendance')
+    }
+  }, [])
 
   const cycleTheme = () => {
     setTheme((t) => (t === 'light' ? 'dark' : 'light'))
@@ -82,8 +89,8 @@ function App() {
             {theme === 'light' ? 'Dark' : 'Light'}
           </button>
         </div>
-        <h1>📊 Koolet's Inventory Management System</h1>
-        <p>Track your inventory, sales, and employee attendance in one place</p>
+        <h1>📊 Koolet's Store Management System</h1>
+        <p>Track your stores, sales, and employee attendance in one place</p>
       </header>
 
       <nav className="tab-nav">
@@ -99,6 +106,7 @@ function App() {
         >
           Stores
         </button>
+        {/* Inventory and Sales tabs disabled – uncomment to re-enable
         <button
           className={`tab ${activeTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setActiveTab('inventory')}
@@ -111,6 +119,7 @@ function App() {
         >
           Sales
         </button>
+        */}
         <button
           className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
           onClick={() => setActiveTab('analytics')}
@@ -120,10 +129,12 @@ function App() {
       </nav>
 
       <main className="app-content">
-        {activeTab === 'inventory' && <InventoryManager />}
-        {activeTab === 'sales' && <SalesTracker />}
         {activeTab === 'attendance' && <AttendanceManager />}
         {activeTab === 'stores' && <StoresManager />}
+        {/* Inventory and Sales content – uncomment to re-enable
+        {activeTab === 'inventory' && <InventoryManager />}
+        {activeTab === 'sales' && <SalesTracker />}
+        */}
         {activeTab === 'analytics' && <Analytics />}
       </main>
 
