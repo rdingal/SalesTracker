@@ -11,7 +11,8 @@ import {
   getDeductionsForWeek,
   saveDeduction,
   updateEmployeeOrder,
-  getStores
+  getStores,
+  updateEmployeeLastActiveDate
 } from '../services/database';
 import './AttendanceManager.css';
 
@@ -52,7 +53,7 @@ export default function AttendanceManager() {
   const [error, setError] = useState(null);
   const [activeSubTab, setActiveSubTab] = useState('calendar');
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '', employeeType: 'main' });
+  const [formData, setFormData] = useState({ id: '', name: '', salaryRate: '', employeeType: 'main', status: 'active', lastActiveDate: '' });
   const [draggedEmployeeId, setDraggedEmployeeId] = useState(null);
   const [stores, setStores] = useState([]);
   const [deductions, setDeductions] = useState([]);
@@ -73,6 +74,10 @@ export default function AttendanceManager() {
     const todayStr = toDateStr(new Date());
     return weekDates.findIndex((d) => toDateStr(d) === todayStr);
   }, [weekDates]);
+
+  const activeEmployees = useMemo(() => {
+    return employees.filter((emp) => emp.status !== 'inactive');
+  }, [employees]);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -119,14 +124,16 @@ export default function AttendanceManager() {
       id: formData.id || undefined,
       name: formData.name.trim(),
       salaryRate: parseFloat(formData.salaryRate) || 0,
-      employeeType: formData.employeeType === 'reliever' ? 'reliever' : 'main'
+      employeeType: formData.employeeType === 'reliever' ? 'reliever' : 'main',
+      status: formData.status === 'inactive' ? 'inactive' : 'active',
+      lastActiveDate: formData.lastActiveDate || null
     };
     if (!employee.name) return;
     setError(null);
     try {
       await saveEmployee(employee);
       loadData();
-      setFormData({ id: '', name: '', salaryRate: '', employeeType: 'main' });
+      setFormData({ id: '', name: '', salaryRate: '', employeeType: 'main', status: 'active', lastActiveDate: '' });
       setShowForm(false);
     } catch (err) {
       setError(err?.message || 'Failed to save employee');
@@ -150,7 +157,9 @@ export default function AttendanceManager() {
       id: emp.id,
       name: emp.name,
       salaryRate: emp.salaryRate != null ? String(emp.salaryRate) : '',
-      employeeType: emp.employeeType === 'reliever' ? 'reliever' : 'main'
+      employeeType: emp.employeeType === 'reliever' ? 'reliever' : 'main',
+      status: emp.status === 'inactive' ? 'inactive' : 'active',
+      lastActiveDate: emp.lastActiveDate || ''
     });
     setShowForm(true);
   };
@@ -264,6 +273,7 @@ export default function AttendanceManager() {
   const handleCellClick = async (employeeId, dateStr) => {
     setError(null);
     try {
+      const wasAbsent = !attendance.some((a) => a.employeeId === employeeId && a.date === dateStr);
       await toggleAttendance(employeeId, dateStr);
       setAttendance((prev) => {
         const exists = prev.some((a) => a.employeeId === employeeId && a.date === dateStr);
@@ -272,6 +282,15 @@ export default function AttendanceManager() {
         }
         return [...prev, { employeeId, date: dateStr }];
       });
+      if (wasAbsent) {
+        const emp = employees.find((e) => e.id === employeeId);
+        if (!emp?.lastActiveDate || dateStr > emp.lastActiveDate) {
+          await updateEmployeeLastActiveDate(employeeId, dateStr);
+          setEmployees((prev) =>
+            prev.map((e) => (e.id === employeeId ? { ...e, lastActiveDate: dateStr } : e))
+          );
+        }
+      }
     } catch (err) {
       setError(err?.message || 'Failed to update attendance');
     }
@@ -342,7 +361,7 @@ export default function AttendanceManager() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp) => (
+                {activeEmployees.map((emp) => (
                   <tr
                     key={emp.id}
                     draggable={canEdit}
@@ -474,6 +493,28 @@ export default function AttendanceManager() {
                   <option value="reliever">Reliever</option>
                 </select>
               </div>
+              <div className="form-group">
+                <label>Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="employee-status-select"
+                  disabled={!canEdit}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Last Active Date</label>
+                <input
+                  type="date"
+                  value={formData.lastActiveDate}
+                  onChange={(e) => setFormData({ ...formData, lastActiveDate: e.target.value })}
+                  className="employee-date-input"
+                  disabled={!canEdit}
+                />
+              </div>
               <button type="submit" className="btn-primary" disabled={!canEdit}>
                 {formData.id ? 'Update' : 'Add'} Employee
               </button>
@@ -484,9 +525,15 @@ export default function AttendanceManager() {
           ) : (
             <ul className="employee-list">
               {employees.map((emp) => (
-                <li key={emp.id} className="employee-item">
+                <li key={emp.id} className={`employee-item ${emp.status === 'inactive' ? 'employee-inactive' : ''}`}>
                   <div className="employee-info">
-                    <span className="employee-name">{emp.name}</span>
+                    <span className="employee-name">
+                      {emp.name}
+                      {emp.status === 'inactive' && <span className="employee-status-badge inactive">Inactive</span>}
+                      {emp.lastActiveDate && (
+                        <span className="employee-last-active">Last active: {new Date(emp.lastActiveDate).toLocaleDateString()}</span>
+                      )}
+                    </span>
                     <span className="employee-salary">₱{Number(emp.salaryRate || 0).toFixed(2)}/day</span>
                   </div>
                   <div className="employee-actions">

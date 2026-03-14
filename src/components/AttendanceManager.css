@@ -580,3 +580,50 @@
   color: #999;
   font-size: 14px;
 }
+
+.employee-status-select,
+.employee-date-input {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+}
+
+.employee-status-select:focus,
+.employee-date-input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.employee-item.employee-inactive {
+  opacity: 0.6;
+  background: #f5f5f5;
+}
+
+.employee-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.employee-status-badge.inactive {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.employee-last-active {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+}

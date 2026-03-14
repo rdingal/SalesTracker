@@ -113,7 +113,9 @@ async function getEmployeesSupabase() {
     name: row.name,
     salaryRate: row.salary_rate != null ? parseFloat(row.salary_rate) : 0,
     storeId: row.store_id || null,
-    employeeType: row.employee_type === 'reliever' ? 'reliever' : 'main'
+    employeeType: row.employee_type === 'reliever' ? 'reliever' : 'main',
+    status: row.status === 'inactive' ? 'inactive' : 'active',
+    lastActiveDate: row.last_active_date || null
   }));
 }
 
@@ -129,12 +131,17 @@ async function updateEmployeeOrderSupabase(orderedEmployeeIds) {
 
 async function saveEmployeeSupabase(employee) {
   const employeeType = employee.employeeType === 'reliever' ? 'reliever' : 'main';
+  const status = employee.status === 'inactive' ? 'inactive' : 'active';
   let row = {
     name: employee.name,
     salary_rate: employee.salaryRate != null ? employee.salaryRate : 0,
     store_id: employee.storeId ?? null,
-    employee_type: employeeType
+    employee_type: employeeType,
+    status: status
   };
+  if (employee.lastActiveDate !== undefined) {
+    row.last_active_date = employee.lastActiveDate;
+  }
   if (!employee.id) {
     const { data: maxRow } = await supabase
       .from('employees')
@@ -145,18 +152,22 @@ async function saveEmployeeSupabase(employee) {
     row.display_order = (maxRow?.display_order ?? -1) + 1;
   }
   if (employee.id) {
+    const updateFields = { name: row.name, salary_rate: row.salary_rate, store_id: row.store_id, employee_type: row.employee_type, status: row.status };
+    if (row.last_active_date !== undefined) {
+      updateFields.last_active_date = row.last_active_date;
+    }
     const { data, error } = await supabase
       .from('employees')
-      .update({ name: row.name, salary_rate: row.salary_rate, store_id: row.store_id, employee_type: row.employee_type })
+      .update(updateFields)
       .eq('id', employee.id)
       .select()
       .single();
     if (error) throw error;
-    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main' };
+    return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main', status: data.status === 'inactive' ? 'inactive' : 'active', lastActiveDate: data.last_active_date || null };
   }
   const { data, error } = await supabase.from('employees').insert(row).select().single();
   if (error) throw error;
-  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main' };
+  return { id: data.id, name: data.name, salaryRate: parseFloat(data.salary_rate || 0), storeId: data.store_id || null, employeeType: data.employee_type === 'reliever' ? 'reliever' : 'main', status: data.status === 'inactive' ? 'inactive' : 'active', lastActiveDate: data.last_active_date || null };
 }
 
 async function deleteEmployeeSupabase(id) {
@@ -258,6 +269,14 @@ async function toggleAttendanceSupabase(employeeId, dateStr) {
   const { error } = await supabase.from('attendance').insert({ employee_id: employeeId, date: dateStr });
   if (error) throw error;
   return true;
+}
+
+async function updateEmployeeLastActiveDateSupabase(employeeId, dateStr) {
+  const { error } = await supabase
+    .from('employees')
+    .update({ last_active_date: dateStr })
+    .eq('id', employeeId);
+  if (error) throw error;
 }
 
 async function recordSaleSupabase(sale) {
@@ -463,7 +482,9 @@ function getEmployeesLocal() {
     name: e.name,
     salaryRate: e.salaryRate != null ? parseFloat(e.salaryRate) : 0,
     storeId: e.storeId ?? null,
-    employeeType: e.employeeType === 'reliever' ? 'reliever' : 'main'
+    employeeType: e.employeeType === 'reliever' ? 'reliever' : 'main',
+    status: e.status === 'inactive' ? 'inactive' : 'active',
+    lastActiveDate: e.lastActiveDate || null
   }));
   if (order.length === 0) return employees.sort((a, b) => a.name.localeCompare(b.name));
   const byId = new Map(employees.map((e) => [e.id, e]));
@@ -485,17 +506,25 @@ function updateEmployeeOrderLocal(orderedEmployeeIds) {
 
 function saveEmployeeLocal(employee) {
   const employeeType = employee.employeeType === 'reliever' ? 'reliever' : 'main';
+  const status = employee.status === 'inactive' ? 'inactive' : 'active';
   const emp = {
     id: employee.id || crypto.randomUUID(),
     name: employee.name,
     salaryRate: employee.salaryRate != null ? Number(employee.salaryRate) : 0,
     storeId: employee.storeId ?? null,
-    employeeType
+    employeeType,
+    status,
+    lastActiveDate: employee.lastActiveDate || null
   };
   const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
   const rawIndex = rawList.findIndex((e) => e.id === emp.id);
-  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate, storeId: emp.storeId, employeeType: emp.employeeType };
+  const raw = { id: emp.id, name: emp.name, salaryRate: emp.salaryRate, storeId: emp.storeId, employeeType: emp.employeeType, status: emp.status, lastActiveDate: emp.lastActiveDate };
   if (rawIndex >= 0) {
+    if (employee.lastActiveDate !== undefined) {
+      raw.lastActiveDate = employee.lastActiveDate;
+    } else {
+      raw.lastActiveDate = rawList[rawIndex].lastActiveDate || null;
+    }
     rawList[rawIndex] = raw;
   } else {
     rawList.push(raw);
@@ -539,6 +568,15 @@ function toggleAttendanceLocal(employeeId, dateStr) {
   }
   localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendance));
   return idx < 0;
+}
+
+function updateEmployeeLastActiveDateLocal(employeeId, dateStr) {
+  const rawList = JSON.parse(localStorage.getItem(STORAGE_KEYS.EMPLOYEES) || '[]');
+  const idx = rawList.findIndex((e) => e.id === employeeId);
+  if (idx >= 0) {
+    rawList[idx].lastActiveDate = dateStr;
+    localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(rawList));
+  }
 }
 
 function getWeeklyPaymentsLocal() {
@@ -849,6 +887,13 @@ export const toggleAttendance = (employeeId, dateStr) =>
         return result;
       })
     : Promise.resolve(toggleAttendanceLocal(employeeId, dateStr));
+
+export const updateEmployeeLastActiveDate = (employeeId, dateStr) =>
+  useSupabase()
+    ? updateEmployeeLastActiveDateSupabase(employeeId, dateStr).then(() => {
+        cacheInvalidate('employees');
+      })
+    : Promise.resolve(updateEmployeeLastActiveDateLocal(employeeId, dateStr));
 
 export const getWeeklyPaymentsForWeek = (weekStartStr) =>
   useSupabase()
