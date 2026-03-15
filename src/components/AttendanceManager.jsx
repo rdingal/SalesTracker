@@ -530,7 +530,7 @@ export default function AttendanceManager() {
                     <span className="employee-name">
                       {emp.name}
                       {emp.status === 'inactive' && <span className="employee-status-badge inactive">Inactive</span>}
-                      {emp.lastActiveDate && (
+                      {emp.status === 'inactive' && emp.lastActiveDate && (
                         <span className="employee-last-active">Last active: {new Date(emp.lastActiveDate).toLocaleDateString()}</span>
                       )}
                     </span>
